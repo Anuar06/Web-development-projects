@@ -1,0 +1,54 @@
+/* Attribution styles for the page footer */
+.attribution { 
+    font-size: 11px; 
+    text-align: center; 
+}
+.attribution a { 
+    color: hsl(228, 45%, 44%); 
+}
+
+/* Body and overall layout styles */
+body {
+    background-color: hsl(220, 15%, 55%);
+    display: flex;
+    flex-direction: column; /* Changed to column to stack .content and .attribution */
+    align-items: center;
+    justify-content: center;
+    font-family: "Outfit", sans-serif; /* Ensured font fallback */
+    height: 100vh;
+    margin: 0; /* Remove default margin */
+}
+
+/* Image styles, ensuring responsiveness and aesthetics */
+img {
+    border-radius: 20px;
+    max-width: 100%; /* Ensures the image is not bigger than its container */
+    height: auto; /* Maintain aspect ratio */
+    margin-bottom: 10px; /* Space between the image and the text */
+}
+
+/* Content container styles */
+.content {
+    background-color: white;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 30px;
+    display: flex; /* Flexbox for layout */
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center-align the children */
+    text-align: center; /* Center-align the text */
+    width: 80%; /* Manageable width for responsiveness */
+    max-width: 500px; /* Maximum width limit */
+}
+
+/* Paragraph styles for distinct visual hierarchy */
+#p1 {
+    color: hsl(218, 44%, 22%);
+    font-weight: bold;
+    width: 100%;
+}
+
+#p2 {
+    color: hsl(220, 15%, 55%);
+    width: 100%;
+}
