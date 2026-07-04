@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     DK CARS WEVELGEM — premium-minimalist remodel (2026-07)
+     Reference feel: myway.be / powercars.be — premium through
+     restraint: light, editorial, price-forward, one cobalt accent.
+     TODO before deploy:
+     1. Real vehicle photos: replace the line-art panels in each
+        .car-visual with <img> (aspect 340:190) when photos exist.
+     2. Verify phone +32 476 20 48 76 and zaakvoerder spelling
+        with the client before this leaves demo status.
+     3. The Kurt Deloddere quote in #over is INVENTED demo copy —
+        get his real words (or approval) before going live.
+     4. Replace the KD monogram in #over with a real photo.
+     5. Reviews (#reviews): the three review cards are DEMO copy —
+        the wording is modeled on real Google reviews of a similar
+        garage (garage-denutte.be), NOT reviews of DK Cars. Swap in
+        DK Cars' real Google reviews (text, names) plus the real
+        rating/count before going live.
+     6. Financiering & inruil: verify with the client that they
+        actually offer financing and trade-in before going live.
+     7. Domain: canonical + og:url point at the Netlify demo URL;
+        swap to the real domain (dkcars.be?) at handover.
+     8. Logo: img/logo.png is the client's logo with the background
+        removed (web size); img/logo-full.png is the full-res cut;
+        img/og-image.jpg (1200x630) is generated from it for social
+        shares. The logo needs a dark surface — keep nav/footer dark.
+
+     TEMPLATE NOTES — reusing this file for a new garage client:
+     - Colors: swap the tokens in :root only (accent + accent-lite
+       must pass 4.5:1 on white / on --ink respectively).
+     - Identity: logo text in nav+footer, <title>, meta description,
+       JSON-LD block, favicon letters.
+     - Facts: address/phone/email/hours in topbar, contact lines,
+       footer, JSON-LD; WhatsApp number in .wa-float + action-bar.
+     - Stock: duplicate a .car-card per vehicle; update .car-badge,
+       h3, specs, price, and the data-car attribute.
+     - Sector copy: hero h1/sub, trust columns, owner quote.
+     ============================================================ -->
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DK Cars Wevelgem — Jonge tweedehandswagens &amp; persoonlijke service</title>
+<meta name="description" content="Zorgvuldig geselecteerde jonge tweedehandswagens met garantie en Car-Pass, plus eigen werkplaats voor onderhoud en herstellingen. DK Cars, Menenstraat 305, Wevelgem." />
+<meta name="theme-color" content="#0C1524" />
+<link rel="canonical" href="https://dk-cars-wevelgem.netlify.app/" />
+<meta property="og:title" content="DK Cars Wevelgem — Jonge tweedehandswagens &amp; persoonlijke service" />
+<meta property="og:description" content="Zorgvuldig geselecteerde jonge tweedehandswagens met garantie en Car-Pass, plus eigen werkplaats. Menenstraat 305, Wevelgem." />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="nl_BE" />
+<meta property="og:url" content="https://dk-cars-wevelgem.netlify.app/" />
+<meta property="og:image" content="https://dk-cars-wevelgem.netlify.app/img/og-image.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230C1524'/%3E%3Cpath d='M8 21h16' stroke='%235B8CFF' stroke-width='3'/%3E%3C/svg%3E">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"AutoDealer","name":"DK Cars Wevelgem",
+ "slogan":"Jonge tweedehandswagens & persoonlijke service",
+ "address":{"@type":"PostalAddress","streetAddress":"Menenstraat 305","addressLocality":"Wevelgem","postalCode":"8560","addressCountry":"BE"},
+ "telephone":"+32476204876","email":"info@dkcars.be","vatID":"BE0459323506",
+ "logo":"https://dk-cars-wevelgem.netlify.app/img/logo.png",
+ "image":"https://dk-cars-wevelgem.netlify.app/img/og-image.jpg",
+ "founder":{"@type":"Person","name":"Kurt Deloddere"},
+ "openingHoursSpecification":[
+   {"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday"],"opens":"08:00","closes":"19:00"},
+   {"@type":"OpeningHoursSpecification","dayOfWeek":"Friday","opens":"08:00","closes":"18:00"},
+   {"@type":"OpeningHoursSpecification","dayOfWeek":"Saturday","opens":"08:00","closes":"12:00"}
+ ]}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Cool automotive palette — cue from myway.be (cool whites, blue) and
+     powercars.be (restraint). One cobalt accent; lighter steel-blue
+     variant for use on dark navy. */
+  --paper:#F5F7FA;
+  --surface:#FFFFFF;
+  --ink:#0C1524;
+  --panel:#111C2E;
+  --text:#16202F;
+  --muted:#5C6675;
+  --line:#E3E7EE;
+  --line-strong:#CBD3DE;
+  --accent:#1D4ED8;
+  --accent-deep:#173FB0;
+  --accent-soft:#E8EEFC;
+  --accent-lite:#5B8CFF;
+  --on-dark:#EDF1F7;
+  --on-dark-muted:#93A0B4;
+  --line-dark:rgba(255,255,255,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;background:var(--paper);color:var(--text);
+  line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;font-size:16px;
+}
+h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em;color:var(--ink)}
+a{color:inherit;text-decoration:none}
+img,svg{max-width:100%;display:block}
+.container{max-width:1200px;margin:0 auto;padding:0 28px}
+
+/* micro-label — the recurring editorial signature */
+.micro{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:.68rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--accent-deep);
+}
+.micro::before{content:'';width:26px;height:1px;background:var(--accent)}
+.micro.on-dark{color:var(--accent-lite)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  min-height:50px;padding:0 28px;font-family:inherit;font-weight:600;font-size:.92rem;
+  cursor:pointer;border:1px solid transparent;border-radius:2px;
+  letter-spacing:.01em;transition:all .22s ease;white-space:nowrap;
+}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.btn-ink{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-ink:hover{background:#000;transform:translateY(-1px)}
+.btn-line{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+.btn-line:hover{border-color:var(--ink)}
+.btn-line-dark{background:transparent;color:var(--on-dark);border-color:rgba(255,255,255,.28)}
+.btn-line-dark:hover{border-color:var(--accent-lite);color:var(--accent-lite)}
+
+/* ===== TOP BAR ===== */
+.topbar{background:var(--ink);color:var(--on-dark-muted);font-size:.8rem;padding:9px 0;border-bottom:1px solid var(--line-dark)}
+.topbar-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.topbar b{color:var(--on-dark);font-weight:600}
+.topbar a{color:var(--on-dark);font-weight:600}
+.topbar a:hover{color:var(--accent-lite)}
+.topbar-left{display:flex;gap:26px;flex-wrap:wrap}
+
+/* ===== NAV — dark, so the client logo (white "CARS") stays legible ===== */
+nav.main{
+  position:sticky;top:0;z-index:100;background:rgba(12,21,36,.92);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line-dark);padding:16px 0;transition:padding .2s;
+}
+nav.main.scrolled{padding:10px 0}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.logo{font-weight:800;font-size:1.3rem;letter-spacing:-.02em;display:flex;align-items:baseline;gap:2px}
+.logo em{font-style:normal;color:var(--accent-deep)}
+.logo small{font-weight:500;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-left:10px}
+.logo-img{height:46px;width:auto;transition:height .2s}
+nav.main.scrolled .logo-img{height:40px}
+.footer-brand .logo-img{height:58px}
+.nav-links{display:flex;gap:34px;align-items:center}
+.nav-links a{font-weight:500;font-size:.9rem;color:var(--on-dark-muted);transition:color .15s;position:relative;white-space:nowrap}
+.nav-links a:hover{color:#fff}
+.nav-cta{display:flex;gap:12px;align-items:center}
+.nav-phone{font-weight:700;font-size:.95rem;letter-spacing:-.01em;white-space:nowrap;color:var(--on-dark)}
+@media (max-width:1020px){.nav-phone{display:none}}
+.nav-phone:hover{color:var(--accent-lite)}
+.menu-toggle{display:none;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#fff;min-width:44px;min-height:44px;line-height:1}
+
+/* ===== HERO ===== */
+.hero{background:var(--ink);color:var(--on-dark);position:relative;overflow:hidden;padding:110px 0 0}
+.hero-ghost{
+  position:absolute;right:-40px;top:30px;font-size:clamp(180px,26vw,340px);font-weight:800;
+  letter-spacing:-.05em;line-height:1;color:transparent;
+  -webkit-text-stroke:1px rgba(255,255,255,.06);pointer-events:none;user-select:none;
+}
+.hero-inner{position:relative;max-width:860px}
+.hero h1{
+  font-size:clamp(2.6rem,6vw,4.4rem);color:#fff;font-weight:800;
+  margin:26px 0 24px;max-width:15ch;
+}
+.hero h1 em{font-style:normal;color:var(--accent-lite)}
+.hero .sub{font-size:1.12rem;color:var(--on-dark-muted);max-width:52ch;line-height:1.7;font-weight:400}
+.hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin:38px 0 0}
+.hero-strip{
+  position:relative;margin-top:80px;border-top:1px solid var(--line-dark);
+  display:grid;grid-template-columns:repeat(3,1fr);
+}
+.hero-strip > div{
+  padding:26px 28px 30px;display:flex;flex-direction:column;gap:4px;
+  border-right:1px solid var(--line-dark);
+}
+.hero-strip > div:first-child{padding-left:0}
+.hero-strip > div:last-child{border-right:none}
+.hero-strip b{color:#fff;font-weight:700;font-size:1rem;letter-spacing:-.01em}
+.hero-strip span{color:var(--on-dark-muted);font-size:.85rem}
+
+/* ===== SECTIONS ===== */
+section{padding:110px 0}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin-bottom:56px;flex-wrap:wrap}
+.section-head h2{font-size:clamp(1.9rem,3.8vw,2.8rem);margin-top:18px;max-width:20ch}
+.section-head p{color:var(--muted);max-width:46ch;margin-top:12px;font-size:1rem}
+
+/* ===== INVENTORY ===== */
+#aanbod{padding-top:100px}
+.car-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.car-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:border-color .25s ease,transform .25s ease,box-shadow .25s ease;
+}
+.car-card:hover{border-color:var(--line-strong);transform:translateY(-4px);box-shadow:0 24px 50px -24px rgba(21,22,24,.18)}
+.car-visual{
+  position:relative;background:var(--panel);aspect-ratio:340/190;
+  display:grid;place-items:center;padding:8% 10%;overflow:hidden;
+}
+.car-visual::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 110%, rgba(91,140,255,.13), transparent 60%);
+}
+.car-visual svg{width:100%;height:auto;color:#C6D0E0;position:relative;z-index:1}
+.car-badge{
+  position:absolute;top:14px;left:14px;z-index:2;
+  font-size:.66rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent-lite);border:1px solid rgba(91,140,255,.4);padding:5px 10px;border-radius:2px;
+  background:rgba(12,21,36,.55);backdrop-filter:blur(4px);
+}
+.car-body{padding:24px 24px 0;display:flex;flex-direction:column;gap:14px;flex:1}
+.car-body h3{font-size:1.22rem;font-weight:700;letter-spacing:-.02em}
+.car-body h3 small{display:block;font-size:.8rem;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:3px}
+.spec-row{display:flex;flex-wrap:wrap;gap:7px}
+.spec{
+  font-size:.74rem;font-weight:500;color:var(--muted);
+  border:1px solid var(--line);border-radius:2px;padding:4px 9px;background:var(--paper);
+}
+.car-price-row{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  border-top:1px solid var(--line);margin-top:6px;padding:16px 0 18px;
+}
+.car-price{font-size:1.55rem;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.car-price-note{font-size:.72rem;color:var(--muted);text-align:right;line-height:1.45}
+.car-cta{
+  display:flex;align-items:center;justify-content:center;min-height:52px;
+  border-top:1px solid var(--line);font-weight:600;font-size:.88rem;color:var(--ink);
+  transition:all .2s;gap:8px;
+}
+.car-cta:hover{background:var(--ink);color:#fff}
+.car-cta svg{width:14px;height:14px}
+.inventory-note{
+  margin-top:34px;display:flex;align-items:center;gap:14px;justify-content:center;
+  color:var(--muted);font-size:.9rem;flex-wrap:wrap;text-align:center;
+}
+.inventory-note a{font-weight:600;color:var(--ink);border-bottom:1px solid var(--accent)}
+.inventory-note a:hover{color:var(--accent-deep)}
+
+/* ===== SOCIAL PROOF BAR (under hero) ===== */
+.proof-bar{background:var(--surface);border-bottom:1px solid var(--line);padding:15px 0}
+.proof-inner{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.proof-rating{display:flex;align-items:center;gap:10px;font-size:.9rem;color:var(--muted)}
+.proof-rating .g{
+  width:26px;height:26px;border:1px solid var(--line-strong);border-radius:50%;
+  display:grid;place-items:center;font-weight:800;font-size:.85rem;color:var(--accent);
+}
+.proof-rating .stars{color:#E8710A;letter-spacing:2px;font-size:.85rem}
+.proof-rating b{color:var(--ink);font-weight:700}
+.proof-bar a{font-weight:600;font-size:.88rem;color:var(--accent-deep)}
+.proof-bar a:hover{color:var(--ink)}
+
+/* ===== FINANCIERING & INRUIL ===== */
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:56px}
+.fin-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  padding:34px 34px 30px;display:flex;flex-direction:column;gap:12px;
+}
+.fin-card h3{font-size:1.2rem;letter-spacing:-.02em}
+.fin-card p{color:var(--muted);font-size:.93rem;line-height:1.7;flex:1}
+.arrow-link{font-weight:600;font-size:.9rem;color:var(--accent-deep)}
+.arrow-link:hover{color:var(--ink)}
+
+/* Keyboard focus — visible on light and dark contexts */
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--accent);outline-offset:3px;border-radius:2px;
+}
+.hero a:focus-visible,.owner a:focus-visible,.topbar a:focus-visible,footer a:focus-visible,
+nav.main a:focus-visible,nav.main button:focus-visible,.brands a:focus-visible{
+  outline-color:var(--accent-lite);
+}
+
+/* ===== TRUST / SERVICES — numbered editorial columns ===== */
+.trust{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-left:1px solid var(--line)}
+.trust-col{padding:10px 38px 10px 34px;border-right:1px solid var(--line)}
+.trust-num{
+  font-size:.8rem;font-weight:600;color:var(--accent-deep);letter-spacing:.16em;
+  display:block;margin-bottom:22px;
+}
+.trust-col h3{font-size:1.28rem;margin-bottom:14px;letter-spacing:-.02em}
+.trust-col p{color:var(--muted);font-size:.94rem;line-height:1.7}
+.trust-col p strong{color:var(--text);font-weight:600}
+
+/* ===== SPECIALISATIES — brand board (structure cue: garage-denutte.be) ===== */
+.brands{background:var(--ink);color:var(--on-dark)}
+.brands .section-head h2{color:#fff}
+.brands .section-head p{color:var(--on-dark-muted)}
+.brand-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line-dark)}
+.brand{padding:52px 24px 46px;text-align:center;border-bottom:1px solid var(--line-dark)}
+.brand:nth-child(odd){border-right:1px solid var(--line-dark)}
+.brand h3{
+  font-size:clamp(1.7rem,3.6vw,2.5rem);font-weight:800;letter-spacing:.08em;
+  text-transform:uppercase;color:#B9C4D4;
+}
+.brand p{
+  margin-top:12px;font-size:.82rem;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--on-dark-muted);
+}
+.brands-note{margin-top:40px;text-align:center;color:var(--on-dark-muted);font-size:.9rem}
+.brands-note a{color:var(--accent-lite);font-weight:600}
+.brands-note a:hover{color:#fff}
+
+/* ===== REVIEWS — Google-style cards ===== */
+.review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.review-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:4px;
+  padding:30px 28px 24px;display:flex;flex-direction:column;gap:14px;
+}
+.review-stars{color:#E8710A;letter-spacing:3px;font-size:.95rem}
+.review-card > p{color:var(--text);font-size:.95rem;line-height:1.7;flex:1}
+.review-meta{display:flex;align-items:center;gap:12px;border-top:1px solid var(--line);padding-top:16px}
+.review-avatar{
+  width:38px;height:38px;border-radius:50%;flex:none;
+  background:var(--accent-soft);color:var(--accent-deep);
+  display:grid;place-items:center;font-weight:700;font-size:.95rem;
+}
+.review-meta b{display:block;font-size:.9rem;color:var(--ink);line-height:1.3}
+.review-meta span{font-size:.75rem;color:var(--muted)}
+
+/* ===== ZAAKVOERDER band ===== */
+.owner{background:var(--ink);color:var(--on-dark);padding:90px 0}
+.owner-inner{display:grid;grid-template-columns:1fr 1.6fr;gap:70px;align-items:center}
+.owner-portrait{
+  aspect-ratio:1;border:1px solid var(--line-dark);border-radius:4px;
+  display:grid;place-items:center;position:relative;background:var(--panel);
+}
+.owner-portrait span{
+  font-size:4.6rem;font-weight:400;color:var(--accent-lite);letter-spacing:.04em;
+}
+.owner-portrait::after{
+  content:'Zaakvoerder';position:absolute;bottom:18px;left:0;right:0;text-align:center;
+  font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--on-dark-muted);
+}
+.owner blockquote{
+  font-size:clamp(1.3rem,2.4vw,1.75rem);font-weight:500;line-height:1.45;
+  color:#fff;letter-spacing:-.015em;max-width:26ch;
+}
+.owner blockquote em{font-style:normal;color:var(--accent-lite)}
+.owner figcaption{margin-top:26px;color:var(--on-dark-muted);font-size:.92rem}
+.owner figcaption b{color:#fff;font-weight:600;display:block;font-size:1rem}
+
+/* ===== AFSPRAAK / CONTACT ===== */
+.contact-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:60px;align-items:flex-start}
+.contact-info h2{font-size:clamp(1.9rem,3.4vw,2.6rem);margin:18px 0 16px}
+.contact-info > p{color:var(--muted);max-width:44ch;margin-bottom:36px}
+.contact-lines{display:grid;gap:0;border-top:1px solid var(--line)}
+.contact-line{display:flex;justify-content:space-between;gap:18px;align-items:baseline;padding:16px 2px;border-bottom:1px solid var(--line);font-size:.94rem}
+.contact-line span{color:var(--muted);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.contact-line b,.contact-line a{font-weight:600;color:var(--ink);text-align:right}
+.contact-line a:hover{color:var(--accent-deep)}
+.hours{margin-top:34px}
+.hours .micro{margin-bottom:14px}
+.hours-row{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--line);font-size:.9rem;color:var(--muted)}
+.hours-row b{color:var(--text);font-weight:600}
+
+.form-card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:40px}
+.form-card h3{font-size:1.3rem;margin-bottom:6px}
+.form-card > p{color:var(--muted);font-size:.9rem;margin-bottom:28px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-field{display:flex;flex-direction:column;min-width:0}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+.form-field input,.form-field select,.form-field textarea{
+  /* width+min-width keep the select's long options from forcing the whole
+     page wider than small viewports (selects refuse to shrink by default) */
+  width:100%;min-width:0;
+  padding:13px 14px;border:1px solid var(--line-strong);border-radius:2px;
+  font-family:inherit;font-size:.95rem;background:var(--paper);color:var(--text);transition:border-color .15s,box-shadow .15s;
+}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,78,216,.15);background:#fff;
+}
+.form-field textarea{resize:vertical;min-height:100px}
+.form-card button{width:100%;margin-top:10px}
+.form-note{font-size:.78rem;color:var(--muted);text-align:center;margin-top:14px}
+
+/* ===== FOOTER ===== */
+footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font-size:.9rem}
+.footer-inner{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:50px;margin-bottom:44px}
+.footer-brand .logo{color:#fff;margin-bottom:14px}
+.footer-brand p{max-width:34ch;line-height:1.7}
+.footer-col h4{color:#fff;font-size:.7rem;text-transform:uppercase;letter-spacing:.2em;margin-bottom:18px;font-weight:600}
+.footer-col p{margin-bottom:9px;line-height:1.6}
+.footer-col a{color:var(--on-dark)}
+.footer-col a:hover{color:var(--accent-lite)}
+.footer-bottom{border-top:1px solid var(--line-dark);padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:.78rem}
+
+/* WhatsApp float — consistent with the other demo sites */
+.wa-float{
+  position:fixed;right:22px;bottom:22px;z-index:90;width:54px;height:54px;border-radius:50%;
+  background:#25D366;display:grid;place-items:center;box-shadow:0 10px 30px -8px rgba(0,0,0,.35);
+  transition:transform .2s;
+}
+.wa-float:hover{transform:scale(1.07)}
+.wa-float svg{width:26px;height:26px;color:#fff}
+
+/* Mobile sticky action bar — the "thumb zone" */
+.action-bar{display:none}
+
+/* Reveal */
+.js-ready .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.js-ready .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js-ready .reveal{opacity:1;transform:none;transition:none}}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:1020px){
+  .car-grid{grid-template-columns:1fr 1fr}
+  .review-grid{grid-template-columns:1fr 1fr}
+  .trust-grid{grid-template-columns:1fr;border-left:none;border-top:1px solid var(--line)}
+  .trust-col{border-right:none;border-bottom:1px solid var(--line);padding:34px 6px 30px}
+  .owner-inner{grid-template-columns:1fr;gap:40px}
+  .owner-portrait{max-width:340px}
+  .contact-grid{grid-template-columns:1fr;gap:48px}
+  .hero-strip{grid-template-columns:1fr;border-top:none}
+  .hero-strip > div{border-right:none;border-top:1px solid var(--line-dark);padding:20px 0}
+}
+@media (max-width:760px){
+  section{padding:70px 0}
+  .hero{padding-top:70px}
+  .nav-links{
+    /* transform (not right:-100%) so the parked drawer never counts
+       toward document scrollWidth on mobile browsers */
+    position:fixed;top:0;right:0;width:280px;height:100vh;background:var(--ink);
+    border-left:1px solid var(--line-dark);flex-direction:column;padding:100px 32px;
+    align-items:flex-start;gap:26px;z-index:99;
+    transform:translateX(105%);transition:transform .3s ease;
+  }
+  .nav-links.open{transform:none}
+  .menu-toggle{display:grid;place-items:center;z-index:101}
+  .nav-phone{display:none}
+  /* The sticky action-bar owns the booking CTA on mobile; the nav
+     button would push the hamburger off-screen at 375px. */
+  .nav-cta .btn{display:none}
+  .topbar{display:none}
+  .logo-img{height:38px}
+  nav.main.scrolled .logo-img{height:34px}
+  .footer-brand .logo-img{height:48px}
+  .car-grid{grid-template-columns:1fr}
+  .review-grid{grid-template-columns:1fr;gap:16px}
+  .brand-grid{grid-template-columns:1fr}
+  .brand{padding:38px 16px 34px}
+  .brand:nth-child(odd){border-right:none}
+  .fin-grid{grid-template-columns:1fr;gap:16px}
+  .form-row{grid-template-columns:1fr}
+  .footer-inner{grid-template-columns:1fr;gap:30px}
+  .form-card{padding:28px 22px}
+  .hero-ghost{display:none}
+  body{padding-bottom:74px}
+  .action-bar{
+    display:grid;grid-template-columns:1fr 1fr;gap:1px;position:fixed;left:0;right:0;bottom:0;z-index:95;
+    background:var(--line-strong);border-top:1px solid var(--line-strong);
+  }
+  .action-bar a{
+    display:flex;align-items:center;justify-content:center;gap:8px;min-height:58px;
+    font-weight:700;font-size:.9rem;
+  }
+  .action-bar .call{background:var(--surface);color:var(--ink)}
+  .action-bar .book{background:var(--ink);color:#fff}
+  .action-bar svg{width:16px;height:16px}
+  .wa-float{bottom:74px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="container topbar-inner">
+    <div class="topbar-left">
+      <span>Menenstraat 305, 8560 Wevelgem</span>
+      <span>Ma–Vr <b>vanaf 8u</b> · Za <b>8u–12u</b></span>
+    </div>
+    <a href="tel:+32476204876">+32 (0)476 20 48 76</a>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="main" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo"><img class="logo-img" src="img/logo.png" alt="DK Cars Wevelgem" width="560" height="203"></a>
+    <div class="nav-links" id="navLinks">
+      <a href="#aanbod">Aanbod</a>
+      <a href="#diensten">Diensten</a>
+      <a href="#specialisaties">Specialisaties</a>
+      <a href="#over">Over ons</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <div class="nav-cta">
+      <a class="nav-phone" href="tel:+32476204876">0476 20 48 76</a>
+      <a href="#afspraak" class="btn btn-accent" style="min-height:44px;padding:0 20px">Maak een afspraak</a>
+      <button type="button" class="menu-toggle" id="menuToggle" aria-label="Menu" aria-expanded="false">☰</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-ghost" aria-hidden="true">DK</div>
+  <div class="container">
+    <div class="hero-inner">
+      <span class="micro on-dark reveal">Jonge tweedehandswagens &amp; persoonlijke service</span>
+      <h1 class="reveal">Uw partner voor de aankoop van uw <em>nieuwe</em> wagen.</h1>
+      <p class="sub reveal">Jonge, zorgvuldig geselecteerde tweedehandswagens met uitstekende service tegen een betaalbare prijs. Te Wevelgem.</p>
+      <div class="hero-cta reveal">
+        <a href="#aanbod" class="btn btn-accent">Bekijk ons aanbod</a>
+        <a href="#afspraak" class="btn btn-line-dark">Maak werkplaatsafspraak</a>
+      </div>
+    </div>
+    <div class="hero-strip reveal">
+      <div>
+        <b>Gekeurd voor verkoop</b>
+        <span>Elke wagen grondig gecontroleerd, met officiële garantie en Car-Pass.</span>
+      </div>
+      <div>
+        <b>Eigen werkplaats</b>
+        <span>Onderhoud en herstellingen onder hetzelfde dak, in Wevelgem.</span>
+      </div>
+      <div>
+        <b>Eén aanspreekpunt</b>
+        <span>U koopt bij zaakvoerder Kurt Deloddere — niet bij een verkoopteam.</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- SOCIAL PROOF — TODO: swap in the real Google rating + count (see top of file) -->
+<div class="proof-bar">
+  <div class="container proof-inner">
+    <div class="proof-rating">
+      <span class="g" aria-hidden="true">G</span>
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <b>Klanten aan het woord</b>
+      <span>· ervaringen via Google</span>
+    </div>
+    <a href="#reviews">Lees hun reviews →</a>
+  </div>
+</div>
+
+<!-- INVENTORY -->
+<section id="aanbod">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="micro">In de showroom</span>
+        <h2>Zorgvuldig geselecteerd. Klaar om te vertrekken.</h2>
+      </div>
+      <p>Geen overvolle parking — een beperkte, doordachte selectie jonge wagens die wij zelf zouden rijden.</p>
+    </div>
+
+    <div class="car-grid">
+      <!-- Car 1 -->
+      <article class="car-card reveal">
+        <div class="car-visual">
+          <span class="car-badge">2024 · Nieuw binnen</span>
+          <!-- TODO: replace with real photo -->
+          <svg viewBox="0 0 340 130" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M60 94 L62 72 Q63 64 74 62 L108 57 Q116 38 138 35 L204 33 Q224 33 234 42 L248 53 Q272 57 277 67 L280 86 Q281 94 273 94 L262 94"/>
+            <path d="M60 94 L78 94 M118 94 L212 94 M250 94 L262 94" opacity=".9"/>
+            <path d="M140 40 L128 56 L164 55 L166 39 Z M176 39 L175 55 L226 54 Q232 46 220 40 Z" stroke-width="1.5" opacity=".55"/>
+            <path d="M138 29 L206 27" stroke-width="1.5" opacity=".45"/>
+            <circle cx="98" cy="95" r="16"/><circle cx="98" cy="95" r="6" opacity=".6"/>
+            <circle cx="232" cy="95" r="16"/><circle cx="232" cy="95" r="6" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="car-body">
+          <h3>Volkswagen T-Roc<small>1.0 TSI · Zwart</small></h3>
+          <div class="spec-row">
+            <span class="spec">2024</span><span class="spec">26.140 km</span>
+            <span class="spec">Benzine</span><span class="spec">Manueel</span>
+          </div>
+          <div class="car-price-row">
+            <span class="car-price">€ 22.490</span>
+            <span class="car-price-note">incl. garantie<br>&amp; Car-Pass</span>
+          </div>
+        </div>
+        <a class="car-cta" href="#afspraak" data-car="Volkswagen T-Roc (2024)">
+          Informatie aanvragen
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </article>
+
+      <!-- Car 2 -->
+      <article class="car-card reveal">
+        <div class="car-visual">
+          <span class="car-badge">2023 · M Pack</span>
+          <svg viewBox="0 0 340 130" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 102 L24 90 Q26 84 36 82 L82 76 Q118 50 170 48 Q220 48 250 68 L286 78 Q306 82 310 90 L312 98 Q312 102 304 102 L290 102"/>
+            <path d="M20 102 L56 102 M96 102 L226 102 M266 102 L290 102" opacity=".9"/>
+            <path d="M100 72 Q126 55 166 53 L164 71 Z M176 53 Q216 54 240 69 L174 71 Z" stroke-width="1.5" opacity=".55"/>
+            <circle cx="76" cy="102" r="15"/><circle cx="76" cy="102" r="5.5" opacity=".6"/>
+            <circle cx="246" cy="102" r="15"/><circle cx="246" cy="102" r="5.5" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="car-body">
+          <h3>BMW 420i Coupé<small>M Pack · Automaat</small></h3>
+          <div class="spec-row">
+            <span class="spec">2023</span><span class="spec">24.870 km</span>
+            <span class="spec">Benzine</span><span class="spec">Automaat</span>
+          </div>
+          <div class="car-price-row">
+            <span class="car-price">€ 41.350</span>
+            <span class="car-price-note">incl. garantie<br>&amp; Car-Pass</span>
+          </div>
+        </div>
+        <a class="car-cta" href="#afspraak" data-car="BMW 420i Coupé M Pack (2023)">
+          Informatie aanvragen
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </article>
+
+      <!-- Car 3 -->
+      <article class="car-card reveal">
+        <div class="car-visual">
+          <span class="car-badge">Collector</span>
+          <svg viewBox="0 0 340 130" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M46 100 Q42 88 56 83 Q72 76 90 68 Q104 40 162 35 Q216 38 240 68 Q260 77 272 84 Q284 90 282 98 L270 100"/>
+            <path d="M46 100 L62 100 M104 100 L218 100 M260 100 L270 100" opacity=".9"/>
+            <path d="M118 54 Q140 42 160 41 L159 62 L108 64 Z M170 41 Q202 44 220 62 L169 62 Z" stroke-width="1.5" opacity=".55"/>
+            <circle cx="84" cy="100" r="15"/><circle cx="84" cy="100" r="5.5" opacity=".6"/>
+            <circle cx="238" cy="100" r="15"/><circle cx="238" cy="100" r="5.5" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="car-body">
+          <h3>Volkswagen Beetle<small>1.2 TSI · Manueel</small></h3>
+          <div class="spec-row">
+            <span class="spec">2014</span><span class="spec">47.200 km</span>
+            <span class="spec">Benzine</span><span class="spec">Manueel</span>
+          </div>
+          <div class="car-price-row">
+            <span class="car-price">€ 13.990</span>
+            <span class="car-price-note">incl. garantie<br>&amp; Car-Pass</span>
+          </div>
+        </div>
+        <a class="car-cta" href="#afspraak" data-car="Volkswagen Beetle (2014)">
+          Informatie aanvragen
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </article>
+    </div>
+
+    <div class="inventory-note reveal">
+      <span>Ons volledige aanbod wisselt wekelijks.</span>
+      <a href="#afspraak">Vraag naar de actuele voorraad →</a>
+    </div>
+
+    <!-- Financiering & inruil — TODO: verify offer with client (see top of file) -->
+    <div class="fin-grid reveal">
+      <div class="fin-card">
+        <h3>Financiering mogelijk</h3>
+        <p>Liever gespreid betalen? Bespreek uw maandbudget en wij bekijken samen de opties — transparant en zonder verplichting.</p>
+        <a class="arrow-link" href="#afspraak" data-type="financiering">Bespreek uw budget →</a>
+      </div>
+      <div class="fin-card">
+        <h3>Inruil bespreekbaar</h3>
+        <p>Uw huidige wagen kan verrekend worden in de aankoopprijs. Vraag vrijblijvend een eerlijke schatting.</p>
+        <a class="arrow-link" href="#afspraak" data-type="inruil">Vraag een schatting →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST / SERVICES -->
+<section class="trust" id="diensten">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="micro">Waarom DK Cars</span>
+        <h2>Kopen is één ding. Erna nog geholpen worden is het echte werk.</h2>
+      </div>
+    </div>
+    <div class="trust-grid reveal">
+      <div class="trust-col">
+        <span class="trust-num">— 01</span>
+        <h3>Kwaliteitsgarantie</h3>
+        <p>Elke wagen wordt <strong>grondig gecontroleerd en gekeurd voor verkoop</strong>, en afgeleverd met officiële garantie en Car-Pass. Wat u ziet is wat u krijgt.</p>
+      </div>
+      <div class="trust-col">
+        <span class="trust-num">— 02</span>
+        <h3>Naverkoop &amp; onderhoud</h3>
+        <p>Onze <strong>eigen moderne werkplaats in Wevelgem</strong> staat klaar voor al uw algemeen onderhoud en herstellingen. Service waarop u kunt bouwen — ook jaren na de aankoop.</p>
+      </div>
+      <div class="trust-col">
+        <span class="trust-num">— 03</span>
+        <h3>Zoekopdracht op maat</h3>
+        <p>Niet gevonden wat u zoekt? Geef ons uw voorkeuren door en zaakvoerder <strong>Kurt Deloddere gaat persoonlijk voor u op zoek</strong> naar de perfecte match.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPECIALISATIES — brand board, structure taken over from garage-denutte.be -->
+<section class="brands" id="specialisaties">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="micro on-dark">Onze specialisaties</span>
+        <h2>Sterk in de merken die u dagelijks rijdt.</h2>
+      </div>
+      <p>Jarenlange ervaring met de Volkswagen-groep — van aankoopadvies tot onderhoud in eigen werkplaats.</p>
+    </div>
+    <div class="brand-grid reveal">
+      <div class="brand">
+        <h3>Volkswagen</h3>
+        <p>Hatchback · Variant · SUV</p>
+      </div>
+      <div class="brand">
+        <h3>Audi</h3>
+        <p>A1 · A3 · A4 · Q-series</p>
+      </div>
+      <div class="brand">
+        <h3>Škoda</h3>
+        <p>Fabia · Octavia · Karoq</p>
+      </div>
+      <div class="brand">
+        <h3>Seat</h3>
+        <p>Ibiza · Leon · Ateca</p>
+      </div>
+    </div>
+    <p class="brands-note reveal">Ander merk? Ook dat kan — zowel in de showroom als in de werkplaats. <a href="#afspraak">Vraag het ons gerust →</a></p>
+  </div>
+</section>
+
+<!-- ZAAKVOERDER -->
+<section class="owner" id="over">
+  <div class="container owner-inner">
+    <div class="owner-portrait reveal">
+      <!-- TODO: replace with photo of Kurt -->
+      <span>KD</span>
+    </div>
+    <figure class="reveal">
+      <blockquote>"Ik verkoop geen wagen die ik <em>zelf niet</em> zou willen rijden. Zo simpel is het."</blockquote>
+      <figcaption>
+        <b>Kurt Deloddere</b>
+        Zaakvoerder, DK Cars Wevelgem — uw eerste én laatste aanspreekpunt, van proefrit tot onderhoud.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- REVIEWS — TODO: DEMO copy, replace with DK Cars' real Google reviews (see top of file) -->
+<section id="reviews">
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <span class="micro">Klanten aan het woord</span>
+        <h2>Wie hier koopt, komt terug.</h2>
+      </div>
+      <a class="arrow-link" href="https://www.google.com/maps/search/?api=1&query=DK+Cars+Menenstraat+305+8560+Wevelgem" target="_blank" rel="noopener">Bekijk alle reviews op Google →</a>
+    </div>
+    <div class="review-grid">
+      <article class="review-card reveal">
+        <span class="review-stars" aria-label="5 op 5 sterren">★★★★★</span>
+        <p>"Topgarage. Vriendelijke ontvangst, vlotte afhandeling en geen gedoe. Alles was in orde zoals afgesproken."</p>
+        <div class="review-meta">
+          <span class="review-avatar" aria-hidden="true">S</span>
+          <div><b>Stefaan V.</b><span>Google-recensie</span></div>
+        </div>
+      </article>
+      <article class="review-card reveal">
+        <span class="review-stars" aria-label="5 op 5 sterren">★★★★★</span>
+        <p>"Al jaren klant en er intussen enkele wagens gekocht. De service is top: je wordt er altijd goed ontvangen en de kwaliteit van het werk staat hoog in het vaandel."</p>
+        <div class="review-meta">
+          <span class="review-avatar" aria-hidden="true">A</span>
+          <div><b>An D.</b><span>Google-recensie</span></div>
+        </div>
+      </article>
+      <article class="review-card reveal">
+        <span class="review-stars" aria-label="5 op 5 sterren">★★★★★</span>
+        <p>"Bij een probleem laten ze je niet in de steek: er wordt overlegd en samen naar een oplossing gezocht. Een aanrader, zowel voor verkoop als voor service."</p>
+        <div class="review-meta">
+          <span class="review-avatar" aria-hidden="true">J</span>
+          <div><b>Jonas M.</b><span>Google-recensie</span></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- AFSPRAAK / CONTACT -->
+<section id="afspraak">
+  <div class="container contact-grid">
+    <div class="contact-info reveal" id="contact">
+      <span class="micro">Contact &amp; afspraak</span>
+      <h2>Kom langs, bel, of plan het hier.</h2>
+      <p>Voor een proefrit, informatie over een wagen, een werkplaatsafspraak of een zoekopdracht op maat — u krijgt altijd rechtstreeks antwoord.</p>
+      <div class="contact-lines">
+        <div class="contact-line"><span>Adres</span><a href="https://www.google.com/maps/search/?api=1&query=Menenstraat+305+8560+Wevelgem" target="_blank" rel="noopener">Menenstraat 305, 8560 Wevelgem — routebeschrijving →</a></div>
+        <div class="contact-line"><span>Telefoon</span><a href="tel:+32476204876">+32 (0)476 20 48 76</a></div>
+        <div class="contact-line"><span>E-mail</span><a href="mailto:info@dkcars.be">info@dkcars.be</a></div>
+        <div class="contact-line"><span>Zaakvoerder</span><b>Kurt Deloddere</b></div>
+      </div>
+      <div class="hours">
+        <span class="micro">Openingsuren</span>
+        <div class="hours-row"><span>Maandag – donderdag</span><b>8u00 – 19u00</b></div>
+        <div class="hours-row"><span>Vrijdag</span><b>8u00 – 18u00</b></div>
+        <div class="hours-row"><span>Zaterdag</span><b>8u00 – 12u00</b></div>
+        <div class="hours-row"><span>Zondag</span><b>Gesloten</b></div>
+      </div>
+    </div>
+
+    <form class="form-card reveal" name="afspraak" method="POST" data-netlify="true" netlify-honeypot="bot-field" onsubmit="okSubmit(event)">
+      <input type="hidden" name="form-name" value="afspraak" />
+      <p style="position:absolute;left:-9999px" aria-hidden="true">
+        <label>Niet invullen: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+      </p>
+      <h3>Plan uw afspraak</h3>
+      <p>Wij bevestigen telefonisch binnen één werkdag.</p>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="af-name">Naam</label>
+          <input id="af-name" name="name" required autocomplete="name" />
+        </div>
+        <div class="form-field">
+          <label for="af-phone">Telefoon</label>
+          <input id="af-phone" name="phone" type="tel" required autocomplete="tel" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="af-type">Waarvoor contacteert u ons?</label>
+          <select id="af-type" name="type" required>
+            <option value="">Kies…</option>
+            <option value="wagen">Informatie over een wagen / proefrit</option>
+            <option value="werkplaats">Werkplaatsafspraak (onderhoud of herstelling)</option>
+            <option value="financiering">Financiering bespreken</option>
+            <option value="inruil">Inruil / overname van mijn wagen</option>
+            <option value="zoekopdracht">Zoekopdracht op maat</option>
+            <option value="anders">Iets anders</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="af-date">Gewenste datum (optioneel)</label>
+          <input id="af-date" name="datum" type="date" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field full">
+          <label for="af-msg">Uw bericht</label>
+          <textarea id="af-msg" name="message" required placeholder="Bv. welke wagen, welk onderhoud, of wat u zoekt…"></textarea>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-accent">Afspraak aanvragen</button>
+      <div class="form-note">Uw gegevens worden enkel gebruikt om u te contacteren.</div>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="logo"><img class="logo-img" src="img/logo.png" alt="DK Cars Wevelgem" width="560" height="203"></a>
+        <p>Jonge tweedehandswagens &amp; persoonlijke service. Zorgvuldig geselecteerd, gekeurd voor verkoop, en onderhouden in onze eigen werkplaats.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <p>Menenstraat 305<br>8560 Wevelgem</p>
+        <p><a href="tel:+32476204876">+32 (0)476 20 48 76</a></p>
+        <p><a href="mailto:info@dkcars.be">info@dkcars.be</a></p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigatie</h4>
+        <p><a href="#aanbod">Aanbod</a></p>
+        <p><a href="#diensten">Diensten</a></p>
+        <p><a href="#over">Over ons</a></p>
+        <p><a href="#reviews">Reviews</a></p>
+        <p><a href="#afspraak">Afspraak</a></p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 DK Cars Wevelgem · BTW BE 0459.323.506</div>
+      <div>Zaakvoerder: Kurt Deloddere</div>
+    </div>
+  </div>
+</footer>
+
+<!-- WhatsApp float -->
+<a class="wa-float" href="https://wa.me/32476204876" target="_blank" rel="noopener" aria-label="Stuur een WhatsApp-bericht">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.2-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4 0 1.4 1 2.8 1.2 3 .1.2 2 3 4.8 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3zM12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.3-1.4c1.4.8 3 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2z"/></svg>
+</a>
+
+<!-- Mobile sticky action bar -->
+<div class="action-bar">
+  <a class="call" href="tel:+32476204876">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.81.3 1.6.54 2.36a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.72-1.11a2 2 0 0 1 2.11-.45c.76.24 1.55.42 2.36.54A2 2 0 0 1 22 16.92z"/></svg>
+    Bel ons
+  </a>
+  <a class="book" href="#afspraak">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Maak afspraak
+  </a>
+</div>
+
+<script>
+document.documentElement.classList.add('js-ready');
+
+/* Sticky nav */
+const navEl = document.getElementById('nav');
+window.addEventListener('scroll', () => navEl.classList.toggle('scrolled', window.scrollY > 20));
+
+/* Mobile menu */
+const tg = document.getElementById('menuToggle');
+const navLinks = document.getElementById('navLinks');
+tg.addEventListener('click', () => {
+  const open = navLinks.classList.toggle('open');
+  tg.setAttribute('aria-expanded', String(open));
+});
+navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  navLinks.classList.remove('open');
+  tg.setAttribute('aria-expanded', 'false');
+}));
+
+/* Reveal on scroll */
+const io = new IntersectionObserver(es => {
+  es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target) } });
+}, {threshold: .12});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* Car "Informatie aanvragen" → prefill the form */
+document.querySelectorAll('.car-cta[data-car]').forEach(a => {
+  a.addEventListener('click', () => {
+    const sel = document.getElementById('af-type');
+    const msg = document.getElementById('af-msg');
+    sel.value = 'wagen';
+    msg.value = 'Ik heb interesse in de ' + a.dataset.car + '. ';
+    msg.focus({preventScroll:true});
+  });
+});
+
+/* Financiering / inruil links → preselect the matching form option */
+document.querySelectorAll('[data-type]').forEach(a => {
+  a.addEventListener('click', () => {
+    document.getElementById('af-type').value = a.dataset.type;
+  });
+});
+
+/* Netlify form AJAX submit */
+function okSubmit(e){
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type=submit]');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = 'Verzenden…';
+  fetch(form.getAttribute('action') || '/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(new FormData(form)).toString()
+  })
+  .then(res => {
+    if(!res.ok) throw new Error('submit failed');
+    btn.innerHTML = '✓ Verzonden — wij bellen u!';
+    form.reset();
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = original; }, 3500);
+  })
+  .catch(() => {
+    btn.innerHTML = '✗ Mislukt — bel of mail ons gerust';
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = original; }, 3500);
+  });
+}
+</script>
+
+</body>
+</html>
