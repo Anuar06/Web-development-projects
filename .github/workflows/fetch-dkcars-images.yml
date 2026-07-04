@@ -4,6 +4,9 @@
 name: Fetch dkcars images
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/website-logo-reviews-iqpbn2]
+    paths: ['.github/workflows/fetch-dkcars-images.yml']
 jobs:
   fetch:
     runs-on: ubuntu-latest
