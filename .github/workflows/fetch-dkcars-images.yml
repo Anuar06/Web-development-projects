@@ -1,0 +1,25 @@
+# One-shot helper: the Claude Code remote environment can't reach the
+# image CDN directly, so this workflow downloads the generated images
+# on a GitHub runner and commits them to the branch. Delete after use.
+name: Fetch dkcars images
+on:
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download images
+        run: |
+          mkdir -p dkcars/img/src
+          curl -fL --retry 3 -o dkcars/img/src/workshop.png "https://d8j0ntlcm91z4.cloudfront.net/user_3FKnwgCQUBCflbLlnuXnMKMhyXA/hf_20260704_014047_f770cd30-0ef5-45fa-b99a-fb3e1fcc920f.png"
+          curl -fL --retry 3 -o dkcars/img/src/troc.png "https://d8j0ntlcm91z4.cloudfront.net/user_3FKnwgCQUBCflbLlnuXnMKMhyXA/hf_20260704_014138_fdf7c6a1-e008-4083-b59c-e25229780725.png"
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dkcars/img/src
+          git commit -m "Add generated source images for dkcars"
+          git push
