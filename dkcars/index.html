@@ -4,8 +4,12 @@
      Reference feel: myway.be / powercars.be — premium through
      restraint: light, editorial, price-forward, one cobalt accent.
      TODO before deploy:
-     1. Real vehicle photos: replace the line-art panels in each
-        .car-visual with <img> (aspect 340:190) when photos exist.
+     1. Photos: img/hero.jpg, img/werkplaats.jpg (same source shot)
+        and img/car-troc.jpg are AI-GENERATED placeholders — replace
+        with real photos of the DK Cars building/werkplaats and of
+        the actual vehicles for sale before going live. The BMW and
+        Beetle cards still use line-art panels; give every .car-visual
+        a real photo (aspect 340:190) when photos exist.
      2. Verify phone +32 476 20 48 76 and zaakvoerder spelling
         with the client before this leaves demo status.
      3. The Kurt Deloddere quote in #over is INVENTED demo copy —
@@ -158,6 +162,17 @@ nav.main.scrolled .logo-img{height:40px}
 
 /* ===== HERO ===== */
 .hero{background:var(--ink);color:var(--on-dark);position:relative;overflow:hidden;padding:110px 0 0}
+/* photo backdrop + ink gradient so the typography keeps its contrast */
+.hero::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:url('img/hero.jpg') center 35%/cover no-repeat;opacity:.45;
+}
+.hero::after{
+  content:'';position:absolute;inset:0;z-index:1;
+  background:linear-gradient(90deg,rgba(12,21,36,.94) 0%,rgba(12,21,36,.78) 50%,rgba(12,21,36,.45) 100%),
+             linear-gradient(0deg,var(--ink) 0%,rgba(12,21,36,0) 32%);
+}
+.hero > .container{position:relative;z-index:2}
 .hero-ghost{
   position:absolute;right:-40px;top:30px;font-size:clamp(180px,26vw,340px);font-weight:800;
   letter-spacing:-.05em;line-height:1;color:transparent;
@@ -208,6 +223,8 @@ section{padding:110px 0}
   background:radial-gradient(ellipse at 50% 110%, rgba(91,140,255,.13), transparent 60%);
 }
 .car-visual svg{width:100%;height:auto;color:#C6D0E0;position:relative;z-index:1}
+.car-visual.has-photo{padding:0}
+.car-visual.has-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .car-badge{
   position:absolute;top:14px;left:14px;z-index:2;
   font-size:.66rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
@@ -286,6 +303,18 @@ nav.main a:focus-visible,nav.main button:focus-visible,.brands a:focus-visible{
 .trust-col h3{font-size:1.28rem;margin-bottom:14px;letter-spacing:-.02em}
 .trust-col p{color:var(--muted);font-size:.94rem;line-height:1.7}
 .trust-col p strong{color:var(--text);font-weight:600}
+
+/* ===== PHOTO BAND — full-width werkplaats shot ===== */
+.photo-band{position:relative;overflow:hidden}
+.photo-band img{width:100%;height:clamp(260px,38vw,460px);object-fit:cover;display:block}
+.photo-band figcaption{
+  position:absolute;left:0;right:0;bottom:0;padding:70px 28px 26px;
+  background:linear-gradient(0deg,rgba(12,21,36,.85),transparent);
+  color:var(--on-dark);font-size:.9rem;
+}
+.photo-band figcaption .container{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.photo-band figcaption b{color:#fff;font-weight:700}
+.photo-band figcaption span{color:var(--on-dark-muted)}
 
 /* ===== SPECIALISATIES — brand board (structure cue: garage-denutte.be) ===== */
 .brands{background:var(--ink);color:var(--on-dark)}
@@ -557,17 +586,10 @@ footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font
     <div class="car-grid">
       <!-- Car 1 -->
       <article class="car-card reveal">
-        <div class="car-visual">
+        <div class="car-visual has-photo">
           <span class="car-badge">2024 · Nieuw binnen</span>
-          <!-- TODO: replace with real photo -->
-          <svg viewBox="0 0 340 130" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M60 94 L62 72 Q63 64 74 62 L108 57 Q116 38 138 35 L204 33 Q224 33 234 42 L248 53 Q272 57 277 67 L280 86 Q281 94 273 94 L262 94"/>
-            <path d="M60 94 L78 94 M118 94 L212 94 M250 94 L262 94" opacity=".9"/>
-            <path d="M140 40 L128 56 L164 55 L166 39 Z M176 39 L175 55 L226 54 Q232 46 220 40 Z" stroke-width="1.5" opacity=".55"/>
-            <path d="M138 29 L206 27" stroke-width="1.5" opacity=".45"/>
-            <circle cx="98" cy="95" r="16"/><circle cx="98" cy="95" r="6" opacity=".6"/>
-            <circle cx="232" cy="95" r="16"/><circle cx="232" cy="95" r="6" opacity=".6"/>
-          </svg>
+          <!-- TODO: AI placeholder — replace with a photo of the actual vehicle -->
+          <img src="img/car-troc.jpg" alt="Zwarte Volkswagen T-Roc, driekwart vooraanzicht" loading="lazy" width="680" height="380">
         </div>
         <div class="car-body">
           <h3>Volkswagen T-Roc<small>1.0 TSI · Zwart</small></h3>
@@ -694,6 +716,17 @@ footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font
     </div>
   </div>
 </section>
+
+<!-- PHOTO BAND — TODO: AI placeholder, replace with a real photo of the DK Cars werkplaats -->
+<figure class="photo-band reveal">
+  <img src="img/werkplaats.jpg" alt="Wagen op de hefbrug in een moderne werkplaats" loading="lazy" width="1400" height="596">
+  <figcaption>
+    <div class="container">
+      <b>Onze werkplaats in Wevelgem</b>
+      <span>Onderhoud &amp; herstellingen — ook jaren na uw aankoop</span>
+    </div>
+  </figcaption>
+</figure>
 
 <!-- SPECIALISATIES — brand board, structure taken over from garage-denutte.be -->
 <section class="brands" id="specialisaties">
