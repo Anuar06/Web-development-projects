@@ -4,12 +4,16 @@
      Reference feel: myway.be / powercars.be — premium through
      restraint: light, editorial, price-forward, one cobalt accent.
      TODO before deploy:
-     1. Photos: img/hero.jpg, img/werkplaats.jpg (same source shot)
-        and img/car-troc.jpg are AI-GENERATED placeholders — replace
-        with real photos of the DK Cars building/werkplaats and of
-        the actual vehicles for sale before going live. The BMW and
-        Beetle cards still use line-art panels; give every .car-visual
-        a real photo (aspect 340:190) when photos exist.
+     1. Photos are PLACEHOLDERS, not the actual vehicles/premises:
+        - img/hero.jpg + img/werkplaats.jpg (same source shot) and
+          img/car-troc.jpg are AI-generated.
+        - img/car-bmw.jpg (Elise240SX, Wikimedia, CC BY-SA 4.0) and
+          img/car-beetle.jpg (David Schiersner, Flickr, CC BY 2.0)
+          are CC-licensed stock; attribution lives in .footer-credits
+          and must stay as long as the photos are used.
+        Replace all of them with real photos of the DK Cars premises
+        and the actual vehicles (aspect 340:190) before going live;
+        full-res sources are kept in img/src/.
      2. Verify phone +32 476 20 48 76 and zaakvoerder spelling
         with the client before this leaves demo status.
      3. The Kurt Deloddere quote in #over is INVENTED demo copy —
@@ -419,6 +423,9 @@ footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font
 .footer-col a{color:var(--on-dark)}
 .footer-col a:hover{color:var(--accent-lite)}
 .footer-bottom{border-top:1px solid var(--line-dark);padding-top:22px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:.78rem}
+.footer-credits{margin-top:12px;font-size:.7rem;color:var(--on-dark-muted);opacity:.75}
+.footer-credits a{color:var(--on-dark-muted);text-decoration:underline}
+.footer-credits a:hover{color:var(--on-dark)}
 
 /* WhatsApp float — consistent with the other demo sites */
 .wa-float{
@@ -610,15 +617,10 @@ footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font
 
       <!-- Car 2 -->
       <article class="car-card reveal">
-        <div class="car-visual">
+        <div class="car-visual has-photo">
           <span class="car-badge">2023 · M Pack</span>
-          <svg viewBox="0 0 340 130" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 102 L24 90 Q26 84 36 82 L82 76 Q118 50 170 48 Q220 48 250 68 L286 78 Q306 82 310 90 L312 98 Q312 102 304 102 L290 102"/>
-            <path d="M20 102 L56 102 M96 102 L226 102 M266 102 L290 102" opacity=".9"/>
-            <path d="M100 72 Q126 55 166 53 L164 71 Z M176 53 Q216 54 240 69 L174 71 Z" stroke-width="1.5" opacity=".55"/>
-            <circle cx="76" cy="102" r="15"/><circle cx="76" cy="102" r="5.5" opacity=".6"/>
-            <circle cx="246" cy="102" r="15"/><circle cx="246" cy="102" r="5.5" opacity=".6"/>
-          </svg>
+          <!-- Stock placeholder (2021 430i, Elise240SX, Wikimedia, CC BY-SA) — replace with the actual vehicle -->
+          <img src="img/car-bmw.jpg" alt="Grijze BMW 4 Reeks Coupé met M-pakket, driekwart vooraanzicht" loading="lazy" width="680" height="380">
         </div>
         <div class="car-body">
           <h3>BMW 420i Coupé<small>M Pack · Automaat</small></h3>
@@ -639,15 +641,10 @@ footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font
 
       <!-- Car 3 -->
       <article class="car-card reveal">
-        <div class="car-visual">
+        <div class="car-visual has-photo">
           <span class="car-badge">Collector</span>
-          <svg viewBox="0 0 340 130" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M46 100 Q42 88 56 83 Q72 76 90 68 Q104 40 162 35 Q216 38 240 68 Q260 77 272 84 Q284 90 282 98 L270 100"/>
-            <path d="M46 100 L62 100 M104 100 L218 100 M260 100 L270 100" opacity=".9"/>
-            <path d="M118 54 Q140 42 160 41 L159 62 L108 64 Z M170 41 Q202 44 220 62 L169 62 Z" stroke-width="1.5" opacity=".55"/>
-            <circle cx="84" cy="100" r="15"/><circle cx="84" cy="100" r="5.5" opacity=".6"/>
-            <circle cx="238" cy="100" r="15"/><circle cx="238" cy="100" r="5.5" opacity=".6"/>
-          </svg>
+          <!-- Stock placeholder (David Schiersner, Flickr, CC BY) — replace with the actual vehicle -->
+          <img src="img/car-beetle.jpg" alt="Witte Volkswagen Beetle geparkeerd in een straat" loading="lazy" width="680" height="380">
         </div>
         <div class="car-body">
           <h3>Volkswagen Beetle<small>1.2 TSI · Manueel</small></h3>
@@ -911,6 +908,10 @@ footer{background:var(--ink);color:var(--on-dark-muted);padding:60px 0 26px;font
     <div class="footer-bottom">
       <div>© 2026 DK Cars Wevelgem · BTW BE 0459.323.506</div>
       <div>Zaakvoerder: Kurt Deloddere</div>
+    </div>
+    <div class="footer-credits">
+      Illustratieve foto's: <a href="https://commons.wikimedia.org/w/index.php?curid=135675650" target="_blank" rel="noopener">Elise240SX</a> (CC BY-SA 4.0),
+      <a href="https://www.flickr.com/photos/27280854@N03/15465612851" target="_blank" rel="noopener">David Schiersner</a> (CC BY 2.0) — bijgesneden en kleur aangepast.
     </div>
   </div>
 </footer>
