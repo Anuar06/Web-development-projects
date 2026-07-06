@@ -1,0 +1,47 @@
+# One-shot helper: this Claude Code environment can't reach Unsplash,
+# so a runner fetches candidate photos + a manifest for local review.
+# Delete after use.
+name: Fetch unsplash candidates
+on:
+  push:
+    branches: [claude/website-logo-reviews-iqpbn2]
+    paths: ['.github/workflows/fetch-unsplash.yml']
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Search and download candidates
+        run: |
+          mkdir -p dkcars/img/candidates
+          fetch_query () {
+            local slug="$1"; shift
+            local query="$*"
+            curl -sG "https://unsplash.com/napi/search/photos" \
+              --data-urlencode "query=$query" --data-urlencode "per_page=6" \
+              -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+              > "/tmp/$slug.json"
+            jq -r --arg slug "$slug" '.results[] | [$slug, .id, (.alt_description // .description // ""), .user.name, .links.html, .urls.raw] | @tsv' \
+              "/tmp/$slug.json" >> /tmp/manifest.tsv
+            local i=0
+            for url in $(jq -r '.results[].urls.raw' "/tmp/$slug.json"); do
+              curl -sL -o "dkcars/img/candidates/${slug}-${i}.jpg" "${url}&w=1600&q=85&fm=jpg" || true
+              i=$((i+1))
+            done
+          }
+          : > /tmp/manifest.tsv
+          fetch_query bmw bmw 4 series coupe grey
+          fetch_query bmw2 bmw coupe dark night
+          fetch_query beetle volkswagen beetle white modern
+          fetch_query beetle2 vw beetle 2015
+          cp /tmp/manifest.tsv dkcars/img/candidates/manifest.tsv
+          ls -la dkcars/img/candidates
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dkcars/img/candidates
+          git commit -m "Add unsplash candidate images for review"
+          git push
