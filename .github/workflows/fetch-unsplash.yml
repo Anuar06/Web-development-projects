@@ -1,6 +1,6 @@
 # One-shot helper: this Claude Code environment can't reach Unsplash,
 # so a runner fetches candidate photos + a manifest for local review.
-# Delete after use.
+# Delete after use. (v2: napi with fallback to HTML scrape + debug output)
 name: Fetch unsplash candidates
 on:
   push:
@@ -15,33 +15,53 @@ jobs:
       - uses: actions/checkout@v4
       - name: Search and download candidates
         run: |
+          set +e
+          UA="Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0"
           mkdir -p dkcars/img/candidates
+          : > /tmp/manifest.tsv
           fetch_query () {
             local slug="$1"; shift
             local query="$*"
-            curl -sG "https://unsplash.com/napi/search/photos" \
-              --data-urlencode "query=$query" --data-urlencode "per_page=6" \
-              -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-              > "/tmp/$slug.json"
-            jq -r --arg slug "$slug" '.results[] | [$slug, .id, (.alt_description // .description // ""), .user.name, .links.html, .urls.raw] | @tsv' \
-              "/tmp/$slug.json" >> /tmp/manifest.tsv
+            local enc="${query// /%20}"
+            curl -sL --max-time 30 "https://unsplash.com/napi/search/photos?query=${enc}&per_page=6" \
+              -H "User-Agent: $UA" -H "Accept: application/json" > "/tmp/$slug.json"
+            head -c 300 "/tmp/$slug.json" > "dkcars/img/candidates/debug-$slug.txt"
+            local urls=""
+            if jq -e '.results | length > 0' "/tmp/$slug.json" >/dev/null 2>&1; then
+              jq -r --arg slug "$slug" '.results[] | [$slug, .id, (.alt_description // .description // ""), .user.name, .links.html, .urls.raw] | @tsv' \
+                "/tmp/$slug.json" >> /tmp/manifest.tsv
+              urls=$(jq -r '.results[].urls.raw' "/tmp/$slug.json")
+            else
+              echo "napi failed for $slug — scraping search page HTML"
+              curl -sL --max-time 30 "https://unsplash.com/s/photos/${query// /-}" \
+                -H "User-Agent: $UA" > "/tmp/$slug.html"
+              head -c 300 "/tmp/$slug.html" >> "dkcars/img/candidates/debug-$slug.txt"
+              urls=$(grep -o 'https://images\.unsplash\.com/photo-[0-9]\{13\}-[0-9a-f]\{12\}' "/tmp/$slug.html" | sort -u | head -6)
+              for u in $urls; do
+                printf '%s\t%s\t(scraped from search page)\t-\t-\t%s\n' "$slug" "-" "$u" >> /tmp/manifest.tsv
+              done
+            fi
             local i=0
-            for url in $(jq -r '.results[].urls.raw' "/tmp/$slug.json"); do
-              curl -sL -o "dkcars/img/candidates/${slug}-${i}.jpg" "${url}&w=1600&q=85&fm=jpg" || true
+            for url in $urls; do
+              case "$url" in *\?*) sep='&';; *) sep='?';; esac
+              curl -sL --max-time 60 -o "dkcars/img/candidates/${slug}-${i}.jpg" \
+                -H "User-Agent: $UA" "${url}${sep}w=1600&q=85&fm=jpg"
               i=$((i+1))
             done
           }
-          : > /tmp/manifest.tsv
           fetch_query bmw bmw 4 series coupe grey
-          fetch_query bmw2 bmw coupe dark night
-          fetch_query beetle volkswagen beetle white modern
-          fetch_query beetle2 vw beetle 2015
+          fetch_query bmw2 bmw coupe dark
+          fetch_query beetle volkswagen beetle white
+          fetch_query beetle2 vw beetle car
           cp /tmp/manifest.tsv dkcars/img/candidates/manifest.tsv
+          # drop zero-byte failures
+          find dkcars/img/candidates -type f -size 0 -delete
           ls -la dkcars/img/candidates
+          exit 0
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add dkcars/img/candidates
-          git commit -m "Add unsplash candidate images for review"
-          git push
+          git commit -m "Add unsplash candidate images for review" || echo "nothing to commit"
+          git push || true
