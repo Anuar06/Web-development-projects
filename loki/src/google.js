@@ -13,7 +13,15 @@ export const SCOPES = [
   'profile',
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/gmail.readonly',
+  // Drafts only — lets LOKI place a draft in Gmail. It can never send mail.
+  'https://www.googleapis.com/auth/gmail.compose',
 ];
+
+// True when the stored grant includes a scope (older grants may lack compose).
+export function hasScope(scope) {
+  const granted = getDb().google?.tokens?.scope || '';
+  return granted.includes(scope);
+}
 
 export const redirectUri = () => `${config.baseUrl}/auth/google/callback`;
 
@@ -193,6 +201,31 @@ export async function flaggedMessages() {
       receivedAt: Number(msg.internalDate) || Date.now(),
     };
   });
+}
+
+// Create a Gmail draft (never sends). Recipient is left blank on purpose —
+// the user picks it in Gmail before sending.
+export async function createDraft(subject, body) {
+  if (!hasScope('gmail.compose')) {
+    const err = new Error('Google was linked before draft access existed — reconnect from the Connections tab to grant it.');
+    err.code = 'missing_scope';
+    throw err;
+  }
+  const mime = [
+    'To: ',
+    `Subject: ${subject.replace(/[\r\n]/g, ' ')}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    '',
+    body,
+  ].join('\r\n');
+  const token = await accessToken();
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ message: { raw: Buffer.from(mime).toString('base64url') } }),
+  });
+  if (!res.ok) throw new Error(`Gmail drafts API ${res.status}`);
+  return res.json();
 }
 
 // '"Bert V." <bert@eurodecants.be>' → 'Bert V.'

@@ -14,7 +14,7 @@ export const newId = () => crypto.randomBytes(5).toString('hex');
 // until real data replaces it. Everything here is editable through the API.
 function seed(now = Date.now()) {
   return {
-    settings: { name: 'Anuar', location: 'Wevelgem', version: '0.3' },
+    settings: { name: 'Anuar', location: 'Wevelgem', version: '0.4' },
 
     plan: {
       label: '19-month plan',
@@ -92,18 +92,41 @@ function seed(now = Date.now()) {
       { id: newId(), text: 'Rijschool: book theory exam slot', done: false, createdAt: now },
     ],
 
-    // Non-Google sources on the Connections page. Google Calendar and Gmail
-    // are real integrations and get their status from the OAuth state; these
-    // are stubs until their integrations are built.
+    // Non-Google sources on the Connections page. Google Calendar/Gmail and
+    // the AI model are real integrations; the bank fund is managed in-app;
+    // VIVES and Notion are honestly marked as planned.
     sources: [
-      { key: 'bank', name: 'Bank / budgeting app', desc: 'Kot deposit fund, web design MRR', kind: 'stub', status: 'reauth', statusAt: now - 2 * DAY },
-      { key: 'vives', name: 'VIVES student portal', desc: 'Grades, CCNA progress, semester results', kind: 'stub', status: 'connected', syncedAt: now - 2 * HOUR },
-      { key: 'notion', name: 'Notion', desc: 'Web design pipeline, daily task list', kind: 'stub', status: 'connected', syncedAt: now - 8 * MIN },
+      { key: 'bank', name: 'Bank / budgeting app', desc: 'Kot deposit fund — managed in-app', kind: 'manual' },
+      { key: 'vives', name: 'VIVES student portal', desc: 'Grades, CCNA progress, semester results', kind: 'planned' },
+      { key: 'notion', name: 'Notion', desc: 'Web design pipeline, daily task list', kind: 'planned' },
     ],
+
+    // Active study block: { id, label, taskId, startedAt, minutes, endsAt }
+    focusBlock: null,
+    // Timestamp until which the CCNA nudge stays quiet
+    nudgeSnoozedUntil: 0,
 
     // Set by the OAuth flow: { tokens, email, name, connectedAt, lastError }
     google: null,
   };
+}
+
+// Bring a db.json written by an older LOKI version up to the current shape.
+function migrate(db) {
+  let changed = false;
+  const set = (key, value) => {
+    if (db[key] === undefined) { db[key] = value; changed = true; }
+  };
+  set('focusBlock', null);
+  set('nudgeSnoozedUntil', 0);
+  if (db.settings.version !== '0.4') { db.settings.version = '0.4'; changed = true; }
+  for (const source of db.sources || []) {
+    if (source.kind === 'stub') {
+      source.kind = source.key === 'bank' ? 'manual' : 'planned';
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 let db = null;
@@ -113,6 +136,7 @@ export function getDb() {
   fs.mkdirSync(path.dirname(config.dataFile), { recursive: true });
   if (fs.existsSync(config.dataFile)) {
     db = JSON.parse(fs.readFileSync(config.dataFile, 'utf8'));
+    if (migrate(db)) persist();
   } else {
     db = seed();
     persist();

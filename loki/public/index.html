@@ -16,7 +16,7 @@
   <div class="brand">
     <span class="logo"><b>L</b></span>
     <span class="brand-name">LOKI</span>
-    <span class="brand-sub">v0.3 · personal system</span>
+    <span class="brand-sub" id="brand-sub">v0.4 · personal system</span>
   </div>
   <nav class="nav" id="nav">
     <button data-tab="dashboard" class="active">Dashboard</button>
@@ -123,12 +123,8 @@
         <h3 id="widget-next">&nbsp;</h3>
         <p class="tiny dim" id="widget-when">&nbsp;</p>
         <hr>
-        <p class="widget-nudge"><span class="dot warn"></span><span id="widget-nudge-text">&nbsp;</span></p>
-        <div class="btn-row">
-          <button class="btn" id="widget-snooze">Snooze</button>
-          <button class="btn" id="widget-start">Start block</button>
-          <button class="btn" data-goto="dashboard">Dashboard</button>
-        </div>
+        <p class="widget-nudge"><span class="dot warn" id="widget-dot"></span><span id="widget-nudge-text">&nbsp;</span></p>
+        <div class="btn-row" id="widget-actions"></div>
       </div>
     </div>
   </section>
@@ -136,19 +132,22 @@
   <!-- ================================================= VOICE -->
   <section id="tab-voice" hidden>
     <div class="voice-stage">
-      <div class="wave" aria-hidden="true">
+      <div class="wave" id="wave" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </div>
-      <p class="listening">LISTENING</p>
-      <div class="voice-card">
-        <p class="loki-tag small">LOKI</p>
-        <p class="voice-text" id="voice-text">&nbsp;</p>
-      </div>
+      <p class="listening" id="voice-state">CHANNEL OPEN</p>
+      <div class="voice-thread" id="voice-thread"></div>
       <div class="btn-row center">
         <button class="btn pill" id="voice-flash">Flashcard summary</button>
         <button class="btn pill" id="voice-lab">Full lab</button>
         <button class="btn pill" id="voice-remind">Remind me after gym</button>
       </div>
+      <form class="chat-input" id="voice-form" autocomplete="off">
+        <button class="btn mic" id="voice-mic" type="button" title="talk to LOKI">🎙</button>
+        <input id="voice-input" placeholder="talk to LOKI…" maxlength="1000">
+        <button class="btn primary" type="submit">Send</button>
+        <button class="btn" id="voice-tts" type="button" title="speak replies aloud">🔇</button>
+      </form>
     </div>
   </section>
 
@@ -180,6 +179,10 @@
       </div>
       <div class="btn-row right" id="briefing-actions"></div>
       <div id="briefing-thread"></div>
+      <form class="chat-input" id="briefing-form" autocomplete="off">
+        <input id="briefing-input" placeholder="reply to LOKI…" maxlength="1000">
+        <button class="btn primary" type="submit">Send</button>
+      </form>
     </div>
   </section>
 
@@ -187,7 +190,7 @@
   <section id="tab-connections" hidden>
     <p class="section-label">CONNECTIONS</p>
     <h1 class="page-title">What Loki can see</h1>
-    <p class="dim conn-sub">Five sources feed the dashboard. Nothing here is written back without asking first.</p>
+    <p class="dim conn-sub" id="conn-sub">Nothing here is written back without asking first.</p>
     <div id="conn-list"></div>
     <p class="tiny dimmer" id="conn-note"></p>
   </section>

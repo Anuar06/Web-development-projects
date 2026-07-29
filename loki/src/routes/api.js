@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { googleConfigured } from '../config.js';
 import * as google from '../google.js';
+import * as ai from '../ai.js';
 import { buildWatching, buildBriefing, ccnaDaysLeft } from '../nudges.js';
 import { getDb, persist, newId } from '../store.js';
 
@@ -52,7 +53,11 @@ api.get('/api/dashboard', async (_req, res) => {
       email: db.google?.email || null,
       connectedAt: db.google?.connectedAt || null,
       lastError: db.google?.lastError || null,
+      canDraft: google.connected() && google.hasScope('gmail.compose'),
     },
+    ai: await ai.aiStatus(),
+    focusBlock: db.focusBlock,
+    nudgeSnoozed: (db.nudgeSnoozedUntil || 0) > Date.now(),
     watching: buildWatching(db, schedule.items),
     plan: { ...db.plan, cleared, total, percent: Math.round((cleared / total) * 100) },
     ccna: { ...db.ccna, daysLeft: ccnaDaysLeft(db) },
@@ -152,6 +157,167 @@ api.patch('/api/plan/milestones/:id', (req, res) => {
   if (typeof req.body?.sub === 'string') milestone.sub = req.body.sub;
   persist();
   res.json(milestone);
+});
+
+/* -------------------------------------------------------- AI endpoints */
+
+// Sanitize a client-sent chat history into API-safe messages.
+function cleanHistory(raw, maxTurns = 12) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((m) => (m?.role === 'user' || m?.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-maxTurns)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+}
+
+// Conversational LOKI — powers the Voice tab and Briefing follow-ups.
+api.post('/api/chat', async (req, res) => {
+  const db = getDb();
+  const messages = cleanHistory(req.body?.messages);
+  if (!messages.length || messages[messages.length - 1].role !== 'user') {
+    return res.status(400).json({ error: 'messages must end with a user turn' });
+  }
+  const { schedule } = await liveSchedule(db);
+  const mode = req.body?.mode === 'briefing' ? 'briefing' : 'voice';
+  try {
+    const result = await ai.chat({
+      system: ai.lokiSystemPrompt(db, schedule.items, mode),
+      messages,
+    });
+    res.json(result);
+  } catch (err) {
+    const { status, body } = ai.chatErrorResponse(err);
+    res.status(status).json(body);
+  }
+});
+
+// Generate real CCNA flashcards for the Voice tab.
+api.post('/api/flashcards', async (req, res) => {
+  const db = getDb();
+  const topic = String(req.body?.topic || '').trim()
+    || (db.tasks.find((t) => !t.done && /ospf|ccna/i.test(t.text))?.text.match(/ospf/i) ? 'OSPF' : 'CCNA exam topics');
+  try {
+    const result = await ai.chat({
+      system: 'You generate CCNA study flashcards. Reply with ONLY a JSON array of exactly 6 objects, each {"q": "...", "a": "..."}. Questions must be exam-realistic and specific; answers 1-2 sentences. No markdown, no prose outside the JSON.',
+      messages: [{ role: 'user', content: `Topic: ${topic}. Last mock score: ${db.ccna.lastMockPct}%. Focus on what commonly trips people up.` }],
+    });
+    const cards = ai.extractJson(result.reply);
+    if (!Array.isArray(cards) || !cards.length) {
+      return res.json({ topic, cards: null, raw: result.reply, provider: result.provider });
+    }
+    res.json({
+      topic,
+      cards: cards.slice(0, 8).map((c) => ({ q: String(c.q || ''), a: String(c.a || '') })),
+      provider: result.provider,
+    });
+  } catch (err) {
+    const { status, body } = ai.chatErrorResponse(err);
+    res.status(status).json(body);
+  }
+});
+
+// Write the follow-up with AI and put a real draft in Gmail.
+api.post('/api/briefing/draft', async (_req, res) => {
+  const db = getDb();
+  const now = Date.now();
+  const quiet = db.followUps
+    .map((f) => ({ ...f, days: Math.floor((now - f.sentAt) / DAY) }))
+    .find((f) => f.days >= (f.nudgeAfterDays ?? 3));
+  if (!quiet) return res.status(400).json({ error: 'no_follow_up', message: 'Nothing is waiting on a follow-up right now.' });
+
+  let draft;
+  try {
+    const result = await ai.chat({
+      system: `You write short follow-up emails for ${db.settings.name}, a student in Wevelgem, Belgium. Reply with ONLY JSON: {"subject": "...", "body": "..."}. Three sentences max, polite but confident, zero groveling. Use the language the original message was most likely in (Dutch for Belgian companies unless context says otherwise). Sign with just the first name.`,
+      messages: [{ role: 'user', content: `Write the follow-up for: "${quiet.label}" — sent ${quiet.days} days ago with no reply. Context:\n${ai.contextSummary(db)}` }],
+    });
+    draft = ai.extractJson(result.reply);
+    if (!draft?.subject || !draft?.body) {
+      draft = { subject: `Opvolging: ${quiet.label}`, body: result.reply };
+    }
+  } catch (err) {
+    const { status, body } = ai.chatErrorResponse(err);
+    return res.status(status).json(body);
+  }
+
+  // Try to place it in Gmail; fall back to returning the text.
+  let inGmail = false;
+  let note = null;
+  if (google.connected()) {
+    try {
+      await google.createDraft(draft.subject, draft.body);
+      inGmail = true;
+    } catch (err) {
+      note = err.code === 'missing_scope' ? err.message : `Draft written, but Gmail refused it (${err.message}).`;
+    }
+  } else {
+    note = 'Google is not linked, so the draft could not be placed in Gmail — text is below.';
+  }
+
+  db.activity.unshift({
+    id: newId(),
+    type: 'briefing',
+    text: `Drafted a follow-up for the ${quiet.label}${inGmail ? ' — sitting in Gmail drafts.' : '.'}`,
+    at: Date.now(),
+  });
+  db.activity = db.activity.slice(0, 50);
+  persist();
+
+  res.json({
+    inGmail,
+    note,
+    subject: draft.subject,
+    body: draft.body,
+    reply: inGmail
+      ? `Done — no groveling. "${draft.subject}" is sitting in your Gmail drafts; add the recipient and hit send. Anything else?`
+      : `Draft's written — subject "${draft.subject}". ${note}`,
+  });
+});
+
+/* --------------------------------------------------- focus blocks + snooze */
+
+api.post('/api/block/start', (req, res) => {
+  const db = getDb();
+  if (db.focusBlock) return res.status(409).json({ error: 'block_active', focusBlock: db.focusBlock });
+  const minutes = Math.min(240, Math.max(5, Number(req.body?.minutes) || 40));
+  const task = db.tasks.find((t) => !t.done && /ospf|ccna/i.test(t.text)) || db.tasks.find((t) => !t.done);
+  const label = String(req.body?.label || '').trim() || (task ? task.text : 'Focus block');
+  const now = Date.now();
+  db.focusBlock = {
+    id: newId(),
+    label,
+    taskId: task?.id || null,
+    startedAt: now,
+    minutes,
+    endsAt: now + minutes * 60_000,
+  };
+  persist();
+  res.status(201).json(db.focusBlock);
+});
+
+api.post('/api/block/stop', (req, res) => {
+  const db = getDb();
+  const block = db.focusBlock;
+  if (!block) return res.status(404).json({ error: 'no_block' });
+  const complete = req.body?.complete === true;
+  if (complete) {
+    const task = db.tasks.find((t) => t.id === block.taskId);
+    if (task) task.done = true;
+    const ranMin = Math.max(1, Math.round((Date.now() - block.startedAt) / 60_000));
+    db.activity.unshift({ id: newId(), type: 'focus', text: `Finished a ${ranMin}-min block: ${block.label}.`, at: Date.now() });
+    db.activity = db.activity.slice(0, 50);
+  }
+  db.focusBlock = null;
+  persist();
+  res.json({ ok: true, completed: complete });
+});
+
+api.post('/api/nudges/snooze', (req, res) => {
+  const db = getDb();
+  const hours = Math.min(24, Math.max(1, Number(req.body?.hours) || 4));
+  db.nudgeSnoozedUntil = Date.now() + hours * 3_600_000;
+  persist();
+  res.json({ snoozedUntil: db.nudgeSnoozedUntil });
 });
 
 /* ------------------------------------------------------------- activity */

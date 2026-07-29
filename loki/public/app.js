@@ -1,4 +1,5 @@
-/* LOKI v0.3 — dashboard client. One payload (/api/dashboard) drives every tab. */
+/* LOKI v0.4 — dashboard client. One payload (/api/dashboard) drives every tab;
+   the Voice and Briefing tabs talk to the AI through /api/chat. */
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -14,6 +15,17 @@ function h(tag, cls, text) {
   return el;
 }
 
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* empty body */ }
+  return { ok: res.ok, status: res.status, data };
+}
+
 function relTime(ts) {
   if (!ts) return null;
   const diff = Date.now() - ts;
@@ -26,7 +38,7 @@ function relTime(ts) {
 const clock = (d = new Date()) =>
   d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-function toast(msg, ms = 3800) {
+function toast(msg, ms = 4200) {
   const el = $('#toast');
   el.textContent = msg;
   el.hidden = false;
@@ -59,17 +71,21 @@ function upcomingSchedule() {
 
 const TABS = ['dashboard', 'widget', 'voice', 'plan', 'briefing', 'connections'];
 
-function gotoTab(name) {
+function gotoTab(name, { pushHash = true } = {}) {
   if (!TABS.includes(name)) name = 'dashboard';
-  for (const t of TABS) {
-    $(`#tab-${t}`).hidden = t !== name;
-  }
+  for (const t of TABS) $(`#tab-${t}`).hidden = t !== name;
   document.querySelectorAll('#nav button').forEach((b) => {
     b.classList.toggle('active', b.dataset.tab === name);
   });
   if (name === 'briefing' && !briefingLoaded) loadBriefing();
-  if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+  if (name === 'voice') initVoice();
+  if (pushHash && location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
 }
+
+// Keep the view in sync with browser back/forward and manual hash edits.
+window.addEventListener('hashchange', () => {
+  gotoTab(location.hash.replace('#', '') || 'dashboard', { pushHash: false });
+});
 
 $('#nav').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-tab]');
@@ -84,6 +100,7 @@ document.addEventListener('click', (e) => {
 /* ------------------------------------------------------------ dashboard */
 
 function renderHero() {
+  $('#brand-sub').textContent = `v${D.settings.version} · personal system`;
   const hour = new Date().getHours();
   const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
   $('#greeting').textContent = `Good ${part}, ${D.settings.name}`;
@@ -97,6 +114,9 @@ function renderHero() {
   } else if (!D.google.connected) {
     chip.className = 'chip warn';
     chip.textContent = 'Google not linked';
+  } else if (!D.ai.ready) {
+    chip.className = 'chip warn';
+    chip.textContent = 'AI not linked';
   } else {
     chip.className = 'chip ok';
     chip.textContent = 'All systems nominal';
@@ -114,7 +134,7 @@ function renderWatching() {
   }
   for (const item of D.watching) {
     const row = h('div', 'watch-row');
-    const dotCls = item.tag === 'pipeline' ? 'dot' : 'dot warn';
+    const dotCls = item.tag === 'pipeline' || item.tag === 'focus' ? 'dot' : 'dot warn';
     row.append(h('span', dotCls), h('span', null, item.text), h('span', 'tag', item.tag));
     wrap.append(row);
   }
@@ -137,18 +157,15 @@ function renderCards() {
   $('#fund-bar').style.width = `${Math.min(100, (D.fund.currentEur / D.fund.goalEur) * 100)}%`;
   const flag = $('#fund-flag');
   flag.className = D.fund.reauthNeeded ? 'sync warn' : 'sync';
-  flag.textContent = D.fund.reauthNeeded ? 'reauth needed' : `updated ${relTime(D.fund.updatedAt)}`;
+  flag.textContent = D.fund.reauthNeeded ? 'needs update' : `updated ${relTime(D.fund.updatedAt)}`;
 
   // schedule
-  const sSync = $('#schedule-sync');
-  sSync.textContent = D.schedule.source === 'google'
+  $('#schedule-sync').textContent = D.schedule.source === 'google'
     ? `synced ${relTime(D.schedule.syncedAt)}`
     : 'local · not synced';
   const sList = $('#schedule-list');
   sList.replaceChildren();
-  if (!D.schedule.items.length) {
-    sList.append(h('p', 'empty', 'Nothing on the calendar today.'));
-  }
+  if (!D.schedule.items.length) sList.append(h('p', 'empty', 'Nothing on the calendar today.'));
   for (const item of D.schedule.items) {
     const row = h('div', 'row');
     row.append(h('span', 'time', item.time), h('span', 'ellip', item.label));
@@ -161,21 +178,15 @@ function renderCards() {
   $('#workout-sub').textContent = `${D.workout.streakDays}-day streak · ${D.workout.focus}`;
 
   // flagged
-  const fSync = $('#flagged-sync');
-  fSync.textContent = D.flagged.source === 'google'
+  $('#flagged-sync').textContent = D.flagged.source === 'google'
     ? `synced ${relTime(D.flagged.syncedAt)}`
     : 'local · not synced';
   const fList = $('#flagged-list');
   fList.replaceChildren();
-  if (!D.flagged.items.length) {
-    fList.append(h('p', 'empty', 'No starred mail.'));
-  }
+  if (!D.flagged.items.length) fList.append(h('p', 'empty', 'No starred mail.'));
   for (const msg of D.flagged.items.slice(0, 5)) {
     const row = h('div', 'row spread');
-    row.append(
-      h('span', 'ellip', `${msg.from} — ${msg.subject}`),
-      h('span', 'right', `${msg.ageDays}d`),
-    );
+    row.append(h('span', 'ellip', `${msg.from} — ${msg.subject}`), h('span', 'right', `${msg.ageDays}d`));
     fList.append(row);
   }
 
@@ -209,16 +220,24 @@ function renderTasks() {
 async function toggleTask(task) {
   task.done = !task.done;
   renderTasks();
-  try {
-    await fetch(`/api/tasks/${task.id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ done: task.done }),
-    });
-  } catch {
+  const { ok } = await postJsonPatch(`/api/tasks/${task.id}`, { done: task.done });
+  if (!ok) {
     task.done = !task.done;
     renderTasks();
     toast('Could not save — is the LOKI server running?');
+  }
+}
+
+async function postJsonPatch(url, body) {
+  try {
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return { ok: res.ok };
+  } catch {
+    return { ok: false };
   }
 }
 
@@ -228,11 +247,7 @@ $('#task-form').addEventListener('submit', async (e) => {
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
-  await fetch('/api/tasks', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text }),
-  }).catch(() => toast('Could not save task.'));
+  await postJson('/api/tasks', { text });
   loadDashboard();
 });
 
@@ -250,52 +265,226 @@ function renderWidget() {
     $('#widget-next').textContent = 'Nothing else today';
     $('#widget-when').textContent = 'clear runway';
   }
-  const snoozed = sessionStorage.getItem('loki-snooze');
-  $('#widget-nudge-text').textContent = snoozed
-    ? 'Snoozed. I’ll bring it back later.'
-    : (D.watching[0]?.text || 'All quiet.');
+
+  const dot = $('#widget-dot');
+  const nudgeText = $('#widget-nudge-text');
+  const actions = $('#widget-actions');
+  actions.replaceChildren();
+
+  if (D.focusBlock) {
+    const left = Math.ceil((D.focusBlock.endsAt - Date.now()) / 60_000);
+    dot.className = 'dot';
+    nudgeText.textContent = left > 0
+      ? `${D.focusBlock.label} — ${left} min left.`
+      : `${D.focusBlock.label} — time's up. Done?`;
+    actions.append(
+      widgetBtn('Finish block', () => stopBlock(true), 'btn primary'),
+      widgetBtn('Abandon', () => stopBlock(false)),
+      widgetBtn('Dashboard', () => gotoTab('dashboard')),
+    );
+  } else {
+    const nudge = D.watching.find((w) => w.tag === 'nudge');
+    dot.className = nudge ? 'dot warn' : 'dot off';
+    nudgeText.textContent = D.nudgeSnoozed
+      ? 'Nudges snoozed. Back later.'
+      : (nudge?.text || D.watching[0]?.text || 'All quiet.');
+    actions.append(
+      widgetBtn('Snooze', snoozeNudges),
+      widgetBtn('Start block', startBlock, 'btn primary'),
+      widgetBtn('Dashboard', () => gotoTab('dashboard')),
+    );
+  }
 }
 
-$('#widget-snooze').addEventListener('click', () => {
-  sessionStorage.setItem('loki-snooze', '1');
-  renderWidget();
-  toast('Snoozed for this session.');
-});
-$('#widget-start').addEventListener('click', () => {
-  toast('Logged. Block timer arrives in v0.4 — go start it for real.');
-});
+function widgetBtn(label, onClick, cls = 'btn') {
+  const b = h('button', cls, label);
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+async function startBlock() {
+  const { ok, data } = await postJson('/api/block/start', { minutes: 40 });
+  if (ok) toast(`Block started: ${data.label} — 40 minutes. Go.`);
+  loadDashboard();
+}
+
+async function stopBlock(complete) {
+  await postJson('/api/block/stop', { complete });
+  toast(complete ? 'Block finished — task checked off.' : 'Block abandoned.');
+  loadDashboard();
+}
+
+async function snoozeNudges() {
+  await postJson('/api/nudges/snooze', { hours: 4 });
+  toast('Nudges snoozed for 4 hours.');
+  loadDashboard();
+}
 
 /* ---------------------------------------------------------------- voice */
 
-function renderVoice() {
-  const study = D.tasks.find((t) => !t.done && /ospf|ccna/i.test(t.text));
+const voiceHistory = [];
+let voiceBusy = false;
+let voiceInited = false;
+let ttsOn = localStorage.getItem('loki-tts') === '1';
+
+function setVoiceState(state) {
+  const labels = { open: 'CHANNEL OPEN', listening: 'LISTENING', thinking: 'THINKING', speaking: 'SPEAKING' };
+  $('#voice-state').textContent = labels[state] || 'CHANNEL OPEN';
+  $('#wave').classList.toggle('idle', state === 'open' || state === 'thinking');
+}
+
+function voiceOpener() {
+  const study = D?.tasks.find((t) => !t.done && /ospf|ccna/i.test(t.text));
   const next = upcomingSchedule()[0];
-  let line = 'Channel open. Ask me about the schedule, the pipeline, or the plan.';
   if (next && study) {
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
     const gap = next.min - nowMin;
     const where = /push|gym/i.test(next.label) ? 'the gym'
       : /ago|shift/i.test(next.label) ? 'your shift'
       : 'your next block';
-    line = gap <= 180
+    return gap <= 180
       ? `You've got a ${gap}-minute OSPF window before ${where}. Want the flashcard summary, or should I queue the full Packet Tracer lab?`
       : `Clear runway until ${next.time}. Open OSPF work is on the list — flashcards or the full lab?`;
-  } else if (study) {
-    line = 'No fixed blocks ahead — open OSPF work is still on the list. Flashcards or the full lab?';
   }
-  $('#voice-text').textContent = line;
+  if (study) return 'No fixed blocks ahead — open OSPF work is still on the list. Flashcards or the full lab?';
+  return 'Channel open. Ask me about the schedule, the pipeline, or the plan.';
 }
 
-$('#voice-flash').addEventListener('click', () =>
-  toast('Flashcard module is offline in v0.3 — queued for v0.4.'));
+function initVoice() {
+  setVoiceState('open');
+  $('#voice-tts').textContent = ttsOn ? '🔊' : '🔇';
+  if (voiceInited || !D) return;
+  voiceInited = true;
+  const opener = voiceOpener();
+  voiceHistory.push({ role: 'assistant', content: opener });
+  appendVoiceMsg('assistant', opener);
+}
+
+function appendVoiceMsg(role, text, pending = false) {
+  const thread = $('#voice-thread');
+  const msg = h('div', `voice-msg${role === 'user' ? ' user' : ''}${pending ? ' pending' : ''}`);
+  if (role === 'assistant') msg.append(h('span', 'loki-tag small', 'LOKI'));
+  msg.append(document.createTextNode(text));
+  thread.append(msg);
+  thread.scrollTop = thread.scrollHeight;
+  return msg;
+}
+
+function speak(text) {
+  if (!ttsOn || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.05;
+  utterance.onstart = () => setVoiceState('speaking');
+  utterance.onend = () => setVoiceState('open');
+  speechSynthesis.speak(utterance);
+}
+
+async function sendVoiceMessage(text) {
+  if (voiceBusy || !text.trim()) return;
+  voiceBusy = true;
+  setVoiceState('thinking');
+  appendVoiceMsg('user', text);
+  voiceHistory.push({ role: 'user', content: text });
+  const pending = appendVoiceMsg('assistant', '…', true);
+
+  const { ok, data } = await postJson('/api/chat', { mode: 'voice', messages: voiceHistory });
+  pending.remove();
+  const reply = ok ? data.reply : (data?.message || 'Something broke on the AI side — try again.');
+  appendVoiceMsg('assistant', reply);
+  voiceHistory.push({ role: 'assistant', content: reply });
+  setVoiceState('open');
+  if (ok) speak(reply); // flips state to SPEAKING while talking
+  voiceBusy = false;
+}
+
+$('#voice-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = $('#voice-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  sendVoiceMessage(text);
+});
+
+$('#voice-tts').addEventListener('click', () => {
+  ttsOn = !ttsOn;
+  localStorage.setItem('loki-tts', ttsOn ? '1' : '0');
+  $('#voice-tts').textContent = ttsOn ? '🔊' : '🔇';
+  if (!ttsOn) speechSynthesis?.cancel();
+  toast(ttsOn ? 'LOKI will speak replies aloud.' : 'Spoken replies off.');
+});
+
+// Real microphone input via the browser's speech recognition (Chrome/Edge).
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!Recognition) {
+  $('#voice-mic').hidden = true;
+} else {
+  let rec = null;
+  $('#voice-mic').addEventListener('click', () => {
+    if (rec) { rec.stop(); return; }
+    rec = new Recognition();
+    rec.lang = 'en-US';
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    $('#voice-mic').classList.add('live');
+    setVoiceState('listening');
+    rec.onresult = (e) => sendVoiceMessage(e.results[0][0].transcript);
+    rec.onerror = () => toast('Mic failed — check browser permission.');
+    rec.onend = () => {
+      $('#voice-mic').classList.remove('live');
+      if (!voiceBusy) setVoiceState('open');
+      rec = null;
+    };
+    rec.start();
+  });
+}
+
+$('#voice-flash').addEventListener('click', async () => {
+  if (voiceBusy) return;
+  voiceBusy = true;
+  setVoiceState('thinking');
+  appendVoiceMsg('user', 'Flashcard summary.');
+  const pending = appendVoiceMsg('assistant', 'Building flashcards…', true);
+  const { ok, data } = await postJson('/api/flashcards', {});
+  pending.remove();
+  if (!ok) {
+    appendVoiceMsg('assistant', data?.message || 'Flashcards failed — try again.');
+  } else if (data.cards) {
+    renderFlashcards(data.topic, data.cards);
+    voiceHistory.push(
+      { role: 'user', content: 'Give me a flashcard summary.' },
+      { role: 'assistant', content: `Served ${data.cards.length} flashcards on ${data.topic}.` },
+    );
+  } else {
+    appendVoiceMsg('assistant', data.raw || 'Got nothing usable back — try again.');
+  }
+  setVoiceState('open');
+  voiceBusy = false;
+});
+
+function renderFlashcards(topic, cards) {
+  const thread = $('#voice-thread');
+  const msg = h('div', 'voice-msg');
+  msg.append(h('span', 'loki-tag small', 'LOKI'));
+  msg.append(document.createTextNode(`${cards.length} on ${topic}. Tap to flip.`));
+  const grid = h('div', 'flashcards');
+  for (const card of cards) {
+    const el = h('div', 'flashcard');
+    el.append(h('q', null, card.q), h('span', 'ans', card.a), h('span', 'hint', 'tap to flip'));
+    el.addEventListener('click', () => el.classList.toggle('open'));
+    grid.append(el);
+  }
+  msg.append(grid);
+  thread.append(msg);
+  thread.scrollTop = thread.scrollHeight;
+}
+
 $('#voice-lab').addEventListener('click', () =>
-  toast('Packet Tracer lab: open it manually for now — the launcher lands in v0.4.'));
+  sendVoiceMessage('Queue the full Packet Tracer lab: give me a topology, an addressing table, and step-by-step OSPF tasks I can build in about 40 minutes.'));
+
 $('#voice-remind').addEventListener('click', async () => {
-  await fetch('/api/tasks', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text: 'After gym: OSPF full lab' }),
-  }).catch(() => {});
+  await postJson('/api/tasks', { text: 'After gym: OSPF full lab' });
   toast('Added to today’s tasks.');
   loadDashboard();
 });
@@ -344,6 +533,8 @@ function renderPlanPage() {
 
 /* ------------------------------------------------------------- briefing */
 
+const briefHistory = [];
+
 async function loadBriefing() {
   briefingLoaded = true;
   try {
@@ -351,13 +542,15 @@ async function loadBriefing() {
     const brief = await res.json();
     $('#briefing-label').textContent = `${brief.label} · ${brief.time}`;
     $('#briefing-text').textContent = brief.text;
+    briefHistory.length = 0;
+    briefHistory.push({ role: 'assistant', content: brief.text });
 
     const actions = $('#briefing-actions');
     actions.replaceChildren();
     $('#briefing-thread').replaceChildren();
     for (const action of brief.actions) {
       const btn = h('button', 'btn pill', action.label);
-      btn.addEventListener('click', () => onBriefingAction(action.id, brief, btn));
+      btn.addEventListener('click', () => onBriefingAction(action.id, btn));
       actions.append(btn);
     }
   } catch {
@@ -365,24 +558,60 @@ async function loadBriefing() {
   }
 }
 
-function onBriefingAction(id, brief, btn) {
+function briefBubble(role, text, pending = false) {
+  const thread = $('#briefing-thread');
+  const el = role === 'user'
+    ? h('div', 'user-bubble', text)
+    : h('div', `brief-reply${pending ? ' pending' : ''}`, text);
+  thread.append(el);
+  el.scrollIntoView({ block: 'nearest' });
+  return el;
+}
+
+async function onBriefingAction(id, btn) {
   if (id === 'callbacks') {
     gotoTab('dashboard');
     toast('Callbacks are in the watching feed.');
-  } else if (id === 'dismiss') {
+    return;
+  }
+  if (id === 'dismiss') {
     $('#briefing-actions').replaceChildren();
     toast('Noted. Same time tomorrow.');
-  } else if (id === 'draft' && brief.draftDemo) {
+    return;
+  }
+  if (id === 'draft') {
     btn.disabled = true;
     const thread = $('#briefing-thread');
-    thread.replaceChildren(
-      h('div', 'brief-divider', 'a moment later'),
-      h('div', 'user-bubble', brief.draftDemo.userLine),
-    );
-    const reply = h('div', 'brief-reply', brief.draftDemo.reply);
-    setTimeout(() => thread.append(reply), 650);
+    thread.append(h('div', 'brief-divider', 'a moment later'));
+    briefBubble('user', 'Draft the follow-up, keep it short.');
+    briefHistory.push({ role: 'user', content: 'Draft the follow-up, keep it short.' });
+    const pending = briefBubble('assistant', 'Writing it…', true);
+    const { ok, data } = await postJson('/api/briefing/draft', {});
+    pending.remove();
+    const reply = ok ? data.reply : (data?.message || 'Drafting failed — try again.');
+    briefBubble('assistant', reply);
+    briefHistory.push({ role: 'assistant', content: reply });
+    if (ok && !data.inGmail) briefBubble('assistant', `Subject: ${data.subject}\n\n${data.body}`);
+    if (!ok) btn.disabled = false;
+    loadDashboard();
   }
 }
+
+$('#briefing-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('#briefing-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  briefBubble('user', text);
+  briefHistory.push({ role: 'user', content: text });
+  const pending = briefBubble('assistant', '…', true);
+  const { ok, data } = await postJson('/api/chat', { mode: 'briefing', messages: briefHistory });
+  pending.remove();
+  const reply = ok ? data.reply : (data?.message || 'Something broke on the AI side — try again.');
+  briefBubble('assistant', reply);
+  briefHistory.push({ role: 'assistant', content: reply });
+});
 
 /* ---------------------------------------------------------- connections */
 
@@ -390,34 +619,49 @@ function renderConnections() {
   const wrap = $('#conn-list');
   wrap.replaceChildren();
   const g = D.google;
+  const aiInfo = D.ai;
 
+  // AI model — LOKI's brain
+  wrap.append(connRow(aiInfo.ready
+    ? {
+        dot: 'dot', state: 'Connected', stateCls: 'conn-state',
+        when: `${aiInfo.provider === 'anthropic' ? 'Claude' : 'Ollama'} · ${aiInfo.model}`,
+        name: 'AI model', desc: 'Voice chat, briefing replies, flashcards, drafts',
+        btn: 'Manage', btnCls: 'btn',
+        onClick: () => toast('Swap the brain in loki/.env: ANTHROPIC_API_KEY / ANTHROPIC_MODEL for Claude, or AI_PROVIDER=ollama with a local model.'),
+      }
+    : {
+        dot: 'dot off', state: 'Needs setup', stateCls: 'conn-state warn',
+        when: 'Claude API key, or local Ollama',
+        name: 'AI model', desc: 'Voice chat, briefing replies, flashcards, drafts',
+        btn: 'Set up', btnCls: 'btn primary',
+        onClick: () => toast('Add ANTHROPIC_API_KEY to loki/.env (console.anthropic.com), or install Ollama and pull a model — LOKI auto-detects it. Restart the server after.'),
+      }));
+
+  // Google Calendar + Gmail (real OAuth state)
   const googleRows = [
-    {
-      name: 'Google Calendar',
-      desc: 'Ago shifts, gym blocks, study sessions',
-      syncedAt: D.schedule.source === 'google' ? D.schedule.syncedAt : null,
-    },
-    {
-      name: 'Gmail',
-      desc: 'Starred threads → flagged messages',
-      syncedAt: D.flagged.source === 'google' ? D.flagged.syncedAt : null,
-    },
+    { name: 'Google Calendar', desc: 'Ago shifts, gym blocks, study sessions', syncedAt: D.schedule.source === 'google' ? D.schedule.syncedAt : null },
+    { name: 'Gmail', desc: 'Starred → flagged · AI follow-up drafts', syncedAt: D.flagged.source === 'google' ? D.flagged.syncedAt : null, wantsDraft: true },
   ];
-
   for (const row of googleRows) {
     if (g.connected) {
+      const needsRelink = row.wantsDraft && !g.canDraft;
       wrap.append(connRow({
-        dot: 'dot', state: 'Connected', stateCls: 'conn-state',
+        dot: needsRelink ? 'dot warn' : 'dot',
+        state: needsRelink ? 'Re-link for drafts' : 'Connected',
+        stateCls: needsRelink ? 'conn-state warn' : 'conn-state',
         when: row.syncedAt ? `synced ${relTime(row.syncedAt)}` : 'sync pending',
         name: row.name, desc: row.desc,
-        btn: 'Manage', btnCls: 'btn',
-        onClick: disconnectGoogle,
+        btn: needsRelink ? 'Re-link' : 'Manage',
+        btnCls: needsRelink ? 'btn primary' : 'btn',
+        onClick: needsRelink ? connectGoogle : disconnectGoogle,
       }));
     } else {
       wrap.append(connRow({
-        dot: 'dot off', state: g.configured ? 'Not linked' : 'Needs setup',
+        dot: 'dot off',
+        state: g.configured ? 'Not linked' : 'Needs setup',
         stateCls: g.configured ? 'conn-state off' : 'conn-state warn',
-        when: 'read-only access',
+        when: 'calendar read · mail read + drafts',
         name: row.name, desc: row.desc,
         btn: 'Connect', btnCls: 'btn primary',
         onClick: connectGoogle,
@@ -425,26 +669,37 @@ function renderConnections() {
     }
   }
 
-  for (const src of D.sources) {
-    const reauth = src.status === 'reauth';
+  // Bank fund — managed in-app
+  wrap.append(connRow({
+    dot: D.fund.reauthNeeded ? 'dot warn' : 'dot',
+    state: D.fund.reauthNeeded ? 'Needs update' : 'Up to date',
+    stateCls: D.fund.reauthNeeded ? 'conn-state warn' : 'conn-state',
+    when: `€${D.fund.currentEur} · updated ${relTime(D.fund.updatedAt)}`,
+    name: 'Bank / budgeting app', desc: 'Kot deposit fund — managed in-app',
+    btn: 'Update', btnCls: D.fund.reauthNeeded ? 'btn primary' : 'btn',
+    onClick: updateFund,
+  }));
+
+  // Honest placeholders
+  for (const src of D.sources.filter((s) => s.kind === 'planned')) {
     wrap.append(connRow({
-      dot: reauth ? 'dot warn' : 'dot',
-      state: reauth ? 'Needs reauth' : 'Connected',
-      stateCls: reauth ? 'conn-state warn' : 'conn-state',
-      when: reauth ? `token expired ${relTime(src.statusAt)}` : `synced ${relTime(src.syncedAt)}`,
+      dot: 'dot off', state: 'Planned', stateCls: 'conn-state off',
+      when: 'integration on the roadmap',
       name: src.name, desc: src.desc,
       btn: 'Manage', btnCls: 'btn',
-      onClick: () => toast(
-        src.key === 'bank'
-          ? 'Bank sync is manual for now — update the fund via the API (see README).'
-          : `${src.name} is a stub source — real integration is on the roadmap.`,
-      ),
+      onClick: () => toast(`${src.name} has no public API hook wired yet — on the roadmap.`),
     }));
   }
 
-  $('#conn-note').textContent = g.configured
-    ? (g.connected && g.email ? `Google account: ${g.email} · read-only scopes (calendar, gmail)` : '')
-    : 'Google OAuth is not configured yet. Copy loki/.env.example to loki/.env, add your Google client ID + secret, restart the server. Full steps in the README.';
+  const live = wrap.querySelectorAll('.conn-state:not(.off):not(.warn)').length;
+  $('#conn-sub').textContent =
+    `${live} of ${wrap.children.length} sources are live. Nothing here is written back without asking first.`;
+
+  const notes = [];
+  if (!g.configured) notes.push('Google OAuth is not configured: copy loki/.env.example to loki/.env, add your Google client ID + secret, restart. Steps in the README.');
+  if (!aiInfo.ready) notes.push('No AI linked: add ANTHROPIC_API_KEY to loki/.env, or run Ollama locally. Steps in the README.');
+  if (g.connected && g.email) notes.push(`Google account: ${g.email} · calendar read-only, gmail read + drafts (never sends)`);
+  $('#conn-note').textContent = notes.join(' — ');
 }
 
 function connRow({ dot, state, stateCls, when, name, desc, btn, btnCls, onClick }) {
@@ -469,8 +724,18 @@ function connectGoogle() {
 
 async function disconnectGoogle() {
   if (!confirm('Disconnect Google from LOKI? Schedule and flagged mail go back to local data.')) return;
-  await fetch('/api/auth/disconnect', { method: 'POST' }).catch(() => {});
+  await postJson('/api/auth/disconnect', {});
   toast('Google disconnected.');
+  loadDashboard();
+}
+
+async function updateFund() {
+  const value = prompt('Current kot fund balance (€):', String(D.fund.currentEur));
+  if (value === null) return;
+  const currentEur = Number(value);
+  if (!Number.isFinite(currentEur) || currentEur < 0) return toast('That is not an amount.');
+  await postJsonPatch('/api/fund', { currentEur, reauthNeeded: false });
+  toast(`Kot fund updated: €${currentEur}.`);
   loadDashboard();
 }
 
@@ -485,9 +750,9 @@ async function loadDashboard() {
     renderWatching();
     renderCards();
     renderWidget();
-    renderVoice();
     renderPlanPage();
     renderConnections();
+    if (!voiceInited && !$('#tab-voice').hidden) initVoice();
   } catch {
     const chip = $('#status-chip');
     chip.className = 'chip err';
@@ -500,7 +765,7 @@ async function loadDashboard() {
   const flag = new URLSearchParams(location.search).get('google');
   if (!flag) return;
   const messages = {
-    connected: 'Google linked — calendar and starred mail are syncing.',
+    connected: 'Google linked — calendar, starred mail, and drafting are live.',
     denied: 'Google link cancelled.',
     unconfigured: 'Google OAuth is not configured — see the README.',
     state_mismatch: 'Google link failed (state mismatch) — try again.',

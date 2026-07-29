@@ -13,11 +13,23 @@ export function ccnaDaysLeft(db) {
 export function buildWatching(db, scheduleItems = []) {
   const items = [];
   const now = Date.now();
+  const snoozed = (db.nudgeSnoozedUntil || 0) > now;
+
+  // 0. A running focus block is its own headline (and silences the CCNA nudge).
+  if (db.focusBlock) {
+    const left = Math.ceil((db.focusBlock.endsAt - now) / 60_000);
+    items.push({
+      tag: 'focus',
+      text: left > 0
+        ? `${db.focusBlock.label} — ${left} min left. Locked in.`
+        : `${db.focusBlock.label} — time's up. Finish it from the widget.`,
+    });
+  }
 
   // 1. CCNA pressure: exam is close and today's study block is still open.
   const daysLeft = ccnaDaysLeft(db);
   const openStudyTask = db.tasks.find((t) => !t.done && /ccna|ospf/i.test(t.text));
-  if (daysLeft !== null && openStudyTask) {
+  if (daysLeft !== null && openStudyTask && !db.focusBlock && !snoozed) {
     const block = scheduleItems.find((s) => /ccna|ospf/i.test(s.label));
     const what = block
       ? `today's ${block.label.replace(/^ccna:\s*/i, '').split('+')[0].trim()} block`
@@ -69,18 +81,11 @@ export function buildBriefing(db, scheduleItems = []) {
     label: hour < 12 ? 'MORNING BRIEFING' : hour < 18 ? 'MIDDAY BRIEFING' : 'EVENING BRIEFING',
     time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
     text: bits.join(' '),
-    // The follow-up "draft" exchange is a scripted demo until a real
-    // drafting module exists (needs gmail.compose scope + a writing model).
+    followUp: quiet ? { id: quiet.id, label: quiet.label, days: quiet.days } : null,
     actions: [
       ...(quiet ? [{ id: 'draft', label: 'Draft the follow-up' }] : []),
       { id: 'callbacks', label: 'Show callbacks' },
       { id: 'dismiss', label: 'Not now' },
     ],
-    draftDemo: quiet
-      ? {
-          userLine: 'Draft the follow-up, keep it short.',
-          reply: 'Done — three lines, no groveling. Sitting in your drafts. Anything else before the shift?',
-        }
-      : null,
   };
 }
