@@ -1,0 +1,8 @@
+# dependencies
+node_modules/
+
+# secrets — never commit these
+.env
+
+# runtime data (contains your Google tokens and personal data)
+data/

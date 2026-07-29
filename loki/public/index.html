@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LOKI — personal system</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2334d97b' stroke-width='3'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='monospace' font-size='14' fill='%23e9f1ea'%3EL%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><b>L</b></span>
+    <span class="brand-name">LOKI</span>
+    <span class="brand-sub">v0.3 · personal system</span>
+  </div>
+  <nav class="nav" id="nav">
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="widget">Widget</button>
+    <button data-tab="voice">Voice</button>
+    <button data-tab="plan">Independence Plan</button>
+    <button data-tab="briefing">Briefing</button>
+    <button data-tab="connections">Connections</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============================================= DASHBOARD -->
+  <section id="tab-dashboard">
+    <div class="hero">
+      <div>
+        <h1 id="greeting">&nbsp;</h1>
+        <p class="hero-sub" id="dateline">&nbsp;</p>
+      </div>
+      <span class="chip ok" id="status-chip">All systems nominal</span>
+    </div>
+
+    <p class="section-label">LOKI IS WATCHING</p>
+    <div id="watching"></div>
+
+    <div class="grid">
+      <article class="card span-6 plan-card">
+        <div class="plan-pct" id="plan-pct">—</div>
+        <div>
+          <p class="card-label">INDEPENDENCE PLAN</p>
+          <h2 class="card-title" id="plan-title">&nbsp;</h2>
+          <p class="dim" id="plan-progress">&nbsp;</p>
+        </div>
+      </article>
+
+      <article class="card span-3">
+        <div class="card-head">
+          <p class="card-label">CCNA COUNTDOWN</p>
+          <span class="sync" id="ccna-sync"></span>
+        </div>
+        <div class="big amber" id="ccna-days">—</div>
+        <p class="dim" id="ccna-sub">&nbsp;</p>
+      </article>
+
+      <article class="card span-3">
+        <div class="card-head">
+          <p class="card-label">KOT FUND</p>
+          <span class="sync warn" id="fund-flag"></span>
+        </div>
+        <div class="money"><span id="fund-cur">—</span><span class="money-goal" id="fund-goal"></span></div>
+        <div class="bar"><div class="bar-fill" id="fund-bar"></div></div>
+      </article>
+
+      <article class="card span-6">
+        <div class="card-head">
+          <p class="card-label">TODAY'S SCHEDULE</p>
+          <span class="sync" id="schedule-sync"></span>
+        </div>
+        <div id="schedule-list"></div>
+      </article>
+
+      <article class="card span-3">
+        <p class="card-label" id="workout-label">WORKOUT</p>
+        <h2 class="card-title" id="workout-name">&nbsp;</h2>
+        <p class="dim" id="workout-sub">&nbsp;</p>
+      </article>
+
+      <article class="card span-3">
+        <div class="card-head">
+          <p class="card-label">FLAGGED MESSAGES</p>
+          <span class="sync" id="flagged-sync"></span>
+        </div>
+        <div id="flagged-list"></div>
+      </article>
+
+      <article class="card span-6">
+        <div class="card-head">
+          <p class="card-label" id="pipeline-label">WEB DESIGN PIPELINE</p>
+          <span class="sync" id="pipeline-sync"></span>
+        </div>
+        <div class="stats" id="pipeline-stats"></div>
+      </article>
+
+      <article class="card span-6">
+        <p class="card-label">TODAY'S TASKS</p>
+        <div id="task-list"></div>
+        <form id="task-form" autocomplete="off">
+          <input id="task-input" placeholder="add task…" maxlength="120">
+        </form>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================================================ WIDGET -->
+  <section id="tab-widget" hidden>
+    <div class="widget-stage">
+      <div class="widget-card">
+        <div class="widget-head">
+          <span class="loki-tag">LOKI</span>
+          <span class="mono dimmer" id="widget-clock">--:--</span>
+        </div>
+        <p class="tiny dim">Next up</p>
+        <h3 id="widget-next">&nbsp;</h3>
+        <p class="tiny dim" id="widget-when">&nbsp;</p>
+        <hr>
+        <p class="widget-nudge"><span class="dot warn"></span><span id="widget-nudge-text">&nbsp;</span></p>
+        <div class="btn-row">
+          <button class="btn" id="widget-snooze">Snooze</button>
+          <button class="btn" id="widget-start">Start block</button>
+          <button class="btn" data-goto="dashboard">Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================= VOICE -->
+  <section id="tab-voice" hidden>
+    <div class="voice-stage">
+      <div class="wave" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <p class="listening">LISTENING</p>
+      <div class="voice-card">
+        <p class="loki-tag small">LOKI</p>
+        <p class="voice-text" id="voice-text">&nbsp;</p>
+      </div>
+      <div class="btn-row center">
+        <button class="btn pill" id="voice-flash">Flashcard summary</button>
+        <button class="btn pill" id="voice-lab">Full lab</button>
+        <button class="btn pill" id="voice-remind">Remind me after gym</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================== INDEPENDENCE PLAN -->
+  <section id="tab-plan" hidden>
+    <p class="section-label" id="plan-page-label">PLAN</p>
+    <h1 class="page-title" id="plan-page-title">&nbsp;</h1>
+    <div class="bar big-bar"><div class="bar-fill" id="plan-bar"></div></div>
+    <div id="milestones"></div>
+    <div class="grid">
+      <article class="card span-6">
+        <p class="card-label">CERTIFICATION ROADMAP</p>
+        <div id="cert-list"></div>
+      </article>
+      <article class="card span-6">
+        <p class="card-label">DRIVING LICENCE TRACK</p>
+        <div id="driving-list"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================== BRIEFING -->
+  <section id="tab-briefing" hidden>
+    <div class="brief-wrap">
+      <p class="section-label" id="briefing-label">BRIEFING</p>
+      <div class="brief-card">
+        <p class="loki-tag small">LOKI</p>
+        <p class="brief-text" id="briefing-text">&nbsp;</p>
+      </div>
+      <div class="btn-row right" id="briefing-actions"></div>
+      <div id="briefing-thread"></div>
+    </div>
+  </section>
+
+  <!-- =========================================== CONNECTIONS -->
+  <section id="tab-connections" hidden>
+    <p class="section-label">CONNECTIONS</p>
+    <h1 class="page-title">What Loki can see</h1>
+    <p class="dim conn-sub">Five sources feed the dashboard. Nothing here is written back without asking first.</p>
+    <div id="conn-list"></div>
+    <p class="tiny dimmer" id="conn-note"></p>
+  </section>
+
+</main>
+
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
