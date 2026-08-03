@@ -16,25 +16,50 @@ function anthropic() {
 
 /* ---------------------------------------------------- provider selection */
 
-// Ollama reachability + installed models, cached for a minute.
-let ollamaCache = { at: 0, ok: false, models: [] };
+// Structured outputs (`format` as a JSON schema) landed in Ollama 0.5.0;
+// the `think` parameter for reasoning models in 0.9.0.
+const OLLAMA_MIN_SCHEMA = [0, 5, 0];
+const OLLAMA_MIN_THINK = [0, 9, 0];
+
+function versionAtLeast(version, min) {
+  if (!version) return false;
+  const parts = String(version).split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < min.length; i++) {
+    if ((parts[i] || 0) > min[i]) return true;
+    if ((parts[i] || 0) < min[i]) return false;
+  }
+  return true;
+}
+
+// Ollama reachability, version and installed models, cached for a minute.
+let ollamaCache = { at: 0, ok: false, models: [], version: null };
 
 async function ollamaInfo() {
   if (Date.now() - ollamaCache.at < 60_000) return ollamaCache;
   try {
-    const res = await fetch(`${config.ai.ollamaUrl}/api/tags`, {
-      signal: AbortSignal.timeout(1500),
-    });
-    const data = res.ok ? await res.json() : { models: [] };
-    ollamaCache = { at: Date.now(), ok: res.ok, models: (data.models || []).map((m) => m.name) };
+    const [tagsRes, versionRes] = await Promise.all([
+      fetch(`${config.ai.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(1500) }),
+      fetch(`${config.ai.ollamaUrl}/api/version`, { signal: AbortSignal.timeout(1500) }).catch(() => null),
+    ]);
+    const tags = tagsRes.ok ? await tagsRes.json() : { models: [] };
+    const version = versionRes?.ok ? (await versionRes.json()).version : null;
+    ollamaCache = {
+      at: Date.now(),
+      ok: tagsRes.ok,
+      version: version || null,
+      models: (tags.models || []).map((m) => ({
+        name: m.name,
+        size: m.details?.parameter_size || null,
+      })),
+    };
   } catch {
-    ollamaCache = { at: Date.now(), ok: false, models: [] };
+    ollamaCache = { at: Date.now(), ok: false, models: [], version: null };
   }
   return ollamaCache;
 }
 
 function ollamaModel() {
-  return config.ai.ollamaModel || ollamaCache.models[0] || null;
+  return config.ai.ollamaModel || ollamaCache.models[0]?.name || null;
 }
 
 async function resolveProvider() {
@@ -50,16 +75,37 @@ async function resolveProvider() {
 
 export async function aiStatus() {
   const provider = await resolveProvider();
-  return {
-    provider,
-    model: provider === 'anthropic' ? config.ai.anthropicModel : provider === 'ollama' ? ollamaModel() : null,
-    ready: Boolean(provider && (provider !== 'ollama' || ollamaModel())),
-  };
+  if (provider === 'anthropic') {
+    return { provider, model: config.ai.anthropicModel, ready: true, version: null, notice: null };
+  }
+  if (provider === 'ollama') {
+    const info = await ollamaInfo();
+    const model = ollamaModel();
+    const stale = info.version && !versionAtLeast(info.version, OLLAMA_MIN_SCHEMA);
+    return {
+      provider,
+      model,
+      ready: Boolean(model),
+      version: info.version,
+      modelCount: info.models.length,
+      notice: !model
+        ? 'Ollama is running but has no models — run `ollama pull llama3.2`.'
+        : stale
+          ? `Ollama ${info.version} is older than 0.5.0 — update it so flashcards and drafts can use structured output.`
+          : null,
+    };
+  }
+  return { provider: null, model: null, ready: false, version: null, notice: null };
 }
 
 /* --------------------------------------------------------------- chat() */
 
-export async function chat({ system, messages, maxTokens = 16000 }) {
+/**
+ * One chat call across both providers.
+ * `schema` (a JSON Schema object) switches on structured output, so callers
+ * get parseable JSON back instead of prose they have to dig through.
+ */
+export async function chat({ system, messages, maxTokens = 16000, schema = null }) {
   const provider = await resolveProvider();
   if (!provider) {
     const err = new Error('No AI provider configured');
@@ -75,6 +121,7 @@ export async function chat({ system, messages, maxTokens = 16000 }) {
       max_tokens: maxTokens,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
+      ...(schema ? { output_config: { format: { type: 'json_schema', schema } } } : {}),
       system,
       messages,
     });
@@ -90,23 +137,39 @@ export async function chat({ system, messages, maxTokens = 16000 }) {
   }
 
   // Ollama
+  const info = await ollamaInfo();
   const model = ollamaModel();
   if (!model) {
-    const err = new Error('Ollama is running but has no models — run `ollama pull <model>`');
+    const err = new Error('Ollama is running but has no models — run `ollama pull llama3.2`');
     err.code = 'ai_unconfigured';
     throw err;
   }
+
+  const body = {
+    model,
+    stream: false,
+    // Keep the model resident so the next reply doesn't pay load time again.
+    keep_alive: '10m',
+    messages: [{ role: 'system', content: system }, ...messages],
+  };
+  // Structured output — constrains generation to the schema (Ollama >= 0.5.0).
+  if (schema && versionAtLeast(info.version, OLLAMA_MIN_SCHEMA)) body.format = schema;
+  // Reasoning models: ask for low-effort thinking, returned separately from
+  // the answer so it never leaks into the reply (Ollama >= 0.9.0).
+  if (versionAtLeast(info.version, OLLAMA_MIN_THINK) && config.ai.ollamaThink) {
+    body.think = config.ai.ollamaThink;
+  }
+
   const res = await fetch(`${config.ai.ollamaUrl}/api/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      messages: [{ role: 'system', content: system }, ...messages],
-    }),
-    signal: AbortSignal.timeout(120_000),
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(180_000),
   });
-  if (!res.ok) throw new Error(`Ollama ${res.status}: ${await res.text().catch(() => '')}`.trim());
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Ollama ${res.status}: ${detail.slice(0, 200)}`.trim());
+  }
   const data = await res.json();
   return { provider, model, reply: (data.message?.content || '').trim() };
 }

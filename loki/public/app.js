@@ -622,20 +622,28 @@ function renderConnections() {
   const aiInfo = D.ai;
 
   // AI model — LOKI's brain
+  const brandName = aiInfo.provider === 'anthropic' ? 'Claude' : 'Ollama';
+  const aiWhen = aiInfo.provider === 'ollama'
+    ? `Ollama ${aiInfo.version || '?'} · ${aiInfo.model}`
+    : `${brandName} · ${aiInfo.model}`;
   wrap.append(connRow(aiInfo.ready
     ? {
-        dot: 'dot', state: 'Connected', stateCls: 'conn-state',
-        when: `${aiInfo.provider === 'anthropic' ? 'Claude' : 'Ollama'} · ${aiInfo.model}`,
+        dot: aiInfo.notice ? 'dot warn' : 'dot',
+        state: aiInfo.notice ? 'Update available' : 'Connected',
+        stateCls: aiInfo.notice ? 'conn-state warn' : 'conn-state',
+        when: aiWhen,
         name: 'AI model', desc: 'Voice chat, briefing replies, flashcards, drafts',
-        btn: 'Manage', btnCls: 'btn',
-        onClick: () => toast('Swap the brain in loki/.env: ANTHROPIC_API_KEY / ANTHROPIC_MODEL for Claude, or AI_PROVIDER=ollama with a local model.'),
+        btn: 'Manage', btnCls: aiInfo.notice ? 'btn primary' : 'btn',
+        onClick: () => toast(aiInfo.notice
+          || 'Swap the brain in loki/.env: ANTHROPIC_API_KEY / ANTHROPIC_MODEL for Claude, or AI_PROVIDER=ollama with a local model.'),
       }
     : {
         dot: 'dot off', state: 'Needs setup', stateCls: 'conn-state warn',
-        when: 'Claude API key, or local Ollama',
+        when: aiInfo.provider === 'ollama' ? `Ollama ${aiInfo.version || ''} · no models` : 'Claude API key, or local Ollama',
         name: 'AI model', desc: 'Voice chat, briefing replies, flashcards, drafts',
         btn: 'Set up', btnCls: 'btn primary',
-        onClick: () => toast('Add ANTHROPIC_API_KEY to loki/.env (console.anthropic.com), or install Ollama and pull a model — LOKI auto-detects it. Restart the server after.'),
+        onClick: () => toast(aiInfo.notice
+          || 'Add ANTHROPIC_API_KEY to loki/.env (console.anthropic.com), or install Ollama and pull a model — LOKI auto-detects it. Restart the server after.'),
       }));
 
   // Google Calendar + Gmail (real OAuth state)

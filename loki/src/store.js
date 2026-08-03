@@ -14,7 +14,7 @@ export const newId = () => crypto.randomBytes(5).toString('hex');
 // until real data replaces it. Everything here is editable through the API.
 function seed(now = Date.now()) {
   return {
-    settings: { name: 'Anuar', location: 'Wevelgem', version: '0.4' },
+    settings: { name: 'Anuar', location: 'Wevelgem', version: '0.5' },
 
     plan: {
       label: '19-month plan',
@@ -119,7 +119,7 @@ function migrate(db) {
   };
   set('focusBlock', null);
   set('nudgeSnoozedUntil', 0);
-  if (db.settings.version !== '0.4') { db.settings.version = '0.4'; changed = true; }
+  if (db.settings.version !== '0.5') { db.settings.version = '0.5'; changed = true; }
   for (const source of db.sources || []) {
     if (source.kind === 'stub') {
       source.kind = source.key === 'bank' ? 'manual' : 'planned';

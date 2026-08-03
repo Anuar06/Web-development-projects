@@ -4,17 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LOKI — personal system</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%2334d97b' stroke-width='3'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='monospace' font-size='14' fill='%23e9f1ea'%3EL%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="LOKI: a personal system tracking the CCNA countdown, kot fund, web design pipeline and daily plan.">
+  <meta name="theme-color" content="#080b16">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23e63946'/%3E%3Cg stroke='%23120a0d' stroke-width='1.8' stroke-linecap='round' fill='none'%3E%3Cpath d='M13 12 L7 7M13 15 L5 14M13 18 L6 22M14 20 L10 26M19 12 L25 7M19 15 L27 14M19 18 L26 22M18 20 L22 26'/%3E%3C/g%3E%3Cellipse cx='16' cy='15.5' rx='3.6' ry='5' fill='%23120a0d'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="logo"><b>L</b></span>
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32" role="img" aria-label="Spider emblem">
+        <g stroke="#12070a" stroke-width="2" stroke-linecap="round" fill="none">
+          <path d="M13 12 L6 6M13 15.5 L4 14M13 19 L5 23M14.5 21 L10 28M19 12 L26 6M19 15.5 L28 14M19 19 L27 23M17.5 21 L22 28"/>
+        </g>
+        <ellipse cx="16" cy="15.5" rx="3.7" ry="5.2" fill="#12070a"/>
+      </svg>
+    </span>
     <span class="brand-name">LOKI</span>
     <span class="brand-sub" id="brand-sub">v0.4 · personal system</span>
   </div>
@@ -87,7 +96,7 @@
 
       <article class="card span-3">
         <div class="card-head">
-          <p class="card-label">FLAGGED MESSAGES</p>
+          <p class="card-label">FLAGGED MAIL</p>
           <span class="sync" id="flagged-sync"></span>
         </div>
         <div id="flagged-list"></div>

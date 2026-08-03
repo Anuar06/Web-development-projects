@@ -191,6 +191,44 @@ api.post('/api/chat', async (req, res) => {
   }
 });
 
+// Structured-output schemas — both providers constrain generation to these,
+// so the response parses instead of needing to be dug out of prose.
+const FLASHCARD_SCHEMA = {
+  type: 'object',
+  properties: {
+    cards: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { q: { type: 'string' }, a: { type: 'string' } },
+        required: ['q', 'a'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['cards'],
+  additionalProperties: false,
+};
+
+const DRAFT_SCHEMA = {
+  type: 'object',
+  properties: { subject: { type: 'string' }, body: { type: 'string' } },
+  required: ['subject', 'body'],
+  additionalProperties: false,
+};
+
+// Accept either {cards:[...]} or a bare array, whichever the model produced.
+function readCards(reply) {
+  const parsed = ai.extractJson(reply);
+  const list = Array.isArray(parsed) ? parsed : parsed?.cards;
+  if (!Array.isArray(list)) return null;
+  const cards = list
+    .filter((c) => c && typeof c.q === 'string' && typeof c.a === 'string' && c.q.trim() && c.a.trim())
+    .slice(0, 8)
+    .map((c) => ({ q: c.q.trim(), a: c.a.trim() }));
+  return cards.length ? cards : null;
+}
+
 // Generate real CCNA flashcards for the Voice tab.
 api.post('/api/flashcards', async (req, res) => {
   const db = getDb();
@@ -198,18 +236,13 @@ api.post('/api/flashcards', async (req, res) => {
     || (db.tasks.find((t) => !t.done && /ospf|ccna/i.test(t.text))?.text.match(/ospf/i) ? 'OSPF' : 'CCNA exam topics');
   try {
     const result = await ai.chat({
-      system: 'You generate CCNA study flashcards. Reply with ONLY a JSON array of exactly 6 objects, each {"q": "...", "a": "..."}. Questions must be exam-realistic and specific; answers 1-2 sentences. No markdown, no prose outside the JSON.',
+      system: 'You generate CCNA study flashcards. Produce exactly 6 cards. Questions must be exam-realistic and specific; answers 1-2 sentences. Return JSON matching the schema: {"cards": [{"q": "...", "a": "..."}]}.',
       messages: [{ role: 'user', content: `Topic: ${topic}. Last mock score: ${db.ccna.lastMockPct}%. Focus on what commonly trips people up.` }],
+      schema: FLASHCARD_SCHEMA,
     });
-    const cards = ai.extractJson(result.reply);
-    if (!Array.isArray(cards) || !cards.length) {
-      return res.json({ topic, cards: null, raw: result.reply, provider: result.provider });
-    }
-    res.json({
-      topic,
-      cards: cards.slice(0, 8).map((c) => ({ q: String(c.q || ''), a: String(c.a || '') })),
-      provider: result.provider,
-    });
+    const cards = readCards(result.reply);
+    if (!cards) return res.json({ topic, cards: null, raw: result.reply, provider: result.provider });
+    res.json({ topic, cards, provider: result.provider });
   } catch (err) {
     const { status, body } = ai.chatErrorResponse(err);
     res.status(status).json(body);
@@ -228,13 +261,14 @@ api.post('/api/briefing/draft', async (_req, res) => {
   let draft;
   try {
     const result = await ai.chat({
-      system: `You write short follow-up emails for ${db.settings.name}, a student in Wevelgem, Belgium. Reply with ONLY JSON: {"subject": "...", "body": "..."}. Three sentences max, polite but confident, zero groveling. Use the language the original message was most likely in (Dutch for Belgian companies unless context says otherwise). Sign with just the first name.`,
+      system: `You write short follow-up emails for ${db.settings.name}, a student in Wevelgem, Belgium. Return JSON matching the schema: {"subject": "...", "body": "..."}. Three sentences max, polite but confident, zero groveling. Use the language the original message was most likely in (Dutch for Belgian companies unless context says otherwise). Sign with just the first name.`,
       messages: [{ role: 'user', content: `Write the follow-up for: "${quiet.label}" — sent ${quiet.days} days ago with no reply. Context:\n${ai.contextSummary(db)}` }],
+      schema: DRAFT_SCHEMA,
     });
-    draft = ai.extractJson(result.reply);
-    if (!draft?.subject || !draft?.body) {
-      draft = { subject: `Opvolging: ${quiet.label}`, body: result.reply };
-    }
+    const parsed = ai.extractJson(result.reply);
+    draft = parsed?.subject && parsed?.body
+      ? { subject: String(parsed.subject), body: String(parsed.body) }
+      : { subject: `Opvolging: ${quiet.label}`, body: result.reply };
   } catch (err) {
     const { status, body } = ai.chatErrorResponse(err);
     return res.status(status).json(body);

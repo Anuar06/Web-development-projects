@@ -1,4 +1,8 @@
-# LOKI v0.4 — personal system
+# LOKI v0.5 — personal system
+
+> Visual identity: web-slinger. Midnight-blue surfaces, a single crimson
+> accent, corner webbing as texture. Spider-Man *inspired* — the palette and
+> the spider mark are drawn from scratch; no Marvel artwork is used.
 
 Backend + dashboard for LOKI. Node.js/Express server, JSON file storage, a
 Google integration (OAuth 2.0), and an AI brain (Claude or a local Ollama
@@ -48,10 +52,21 @@ is `claude-opus-5`; override with `ANTHROPIC_MODEL=`. Requests opt into
 Anthropic's server-side fallback, so if a safety classifier ever declines a
 request it is retried on a fallback Claude model automatically.
 
-**Option B — Ollama (free, local, private).** Install from
+**Option B — Ollama (free, local, private).** Install the latest from
 <https://ollama.com>, then `ollama pull llama3.2` (or any model). LOKI finds
 the running server and uses the first installed model — no config needed.
 Pin one with `OLLAMA_MODEL=`.
+
+LOKI reads your Ollama version and uses what it supports:
+
+| Ollama | What LOKI turns on |
+| --- | --- |
+| any | chat, plus `keep_alive` so the model stays warm between replies |
+| 0.5.0+ | **structured output** — flashcards and drafts are generated against a JSON schema, so they always parse instead of being scraped out of prose |
+| 0.9.0+ | **thinking models** via `OLLAMA_THINK=low\|medium\|high` — reasoning is returned separately and never leaks into the reply |
+
+Connections shows the detected version and tells you if an upgrade would buy
+you something. Older versions keep working, just with the fallback parser.
 
 Restart the server; the **Connections** tab shows which brain is linked.
 With an AI linked, the Voice tab is a real conversation (type, or use the
@@ -74,12 +89,12 @@ dashboard data.
 
 Scopes: `calendar.readonly`, `gmail.readonly`, and `gmail.compose` — the
 last one lets LOKI **create drafts** (it can never send mail). If you linked
-Google on v0.3, hit **Re-link** once to grant draft access.
+Google before v0.4, hit **Re-link** once to grant draft access.
 
 ⚠️ While the Google app is in *Testing* mode, Google expires the refresh
 token after 7 days — reconnect weekly, or publish the app to remove the limit.
 
-## What's real vs. pending in v0.4
+## What's real vs. pending in v0.5
 
 - **Real:** everything in the table up top, plus tasks, pipeline/fund/CCNA/
   plan data, the nudge engine, and activity logging (drafting a follow-up
